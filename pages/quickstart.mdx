@@ -1,0 +1,28 @@
+---
+title: "Quickstart"
+description: "Pick the fastest way to get data flowing."
+---
+
+## Option A — Zero‑Code via OpenAI Proxy
+
+Point your batch/files/completions to our proxy and keep your existing OpenAI SDK code.
+
+```bash
+# example: chat completions
+curl -N -X POST "$BASE/api/providers/open_ai/v1/chat/completions"   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json"   -d '{"model":"gpt-4o-mini","messages":[{"role":"user","content":"Hello"}],"stream":true}'
+```
+
+→ Full details: [/http/openai-proxy](/http/openai-proxy)
+
+## Option B — Auto‑Instrument (OTEL)
+
+Emit spans from **OpenAI**, **HTTP**, and **tooling**.
+
+- **Python**: [/ingestion/python](/ingestion/python)
+- **TypeScript/Node**: [/ingestion/typescript](/ingestion/typescript)
+
+## Option C — Semantic Steps (Optional)
+
+Use **Traceloop/OpenLLMetry** to add **workflow/task/agent/tool** spans that group low‑level spans into readable steps. If you skip this, Brixo still infers steps from raw spans.
+
+- Frameworks & annotations: [/ingestion/frameworks](/ingestion/frameworks)

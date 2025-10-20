@@ -1,0 +1,64 @@
+---
+title: 'TypeScript / Node Setup (OTEL + optional semantic steps)'
+description: 'TypeScript / Node Setup (OTEL + optional semantic steps)'
+---
+
+## 1) Install packages
+```bash
+npm i @opentelemetry/api @opentelemetry/sdk-trace-node @opentelemetry/resources \
+      @opentelemetry/exporter-trace-otlp-http @opentelemetry/instrumentation \
+      @opentelemetry/instrumentation-http @opentelemetry/semantic-conventions \
+      @opentelemetry/instrumentation-openai
+# (Optional) Semantic steps via OpenLLMetry/Traceloop SDK for Node
+# npm i openllmetry   # use the package name from their docs
+```
+
+## 2) Minimal OTEL init (export to Brixo)
+```ts
+// tracing.ts
+import { Resource } from "@opentelemetry/resources";
+import { diag, DiagConsoleLogger, DiagLogLevel } from "@opentelemetry/api";
+import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
+import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
+import { BatchSpanProcessor } from "@opentelemetry/sdk-trace-base";
+import { registerInstrumentations } from "@opentelemetry/instrumentation";
+import { HttpInstrumentation } from "@opentelemetry/instrumentation-http";
+import { OpenAIInstrumentation } from "@opentelemetry/instrumentation-openai";
+
+const BRIXO_OTLP_ENDPOINT = process.env.BRIXO_OTLP_ENDPOINT || "https://collector.brixo.example/v1/traces";
+const BRIXO_API_KEY = process.env.BRIXO_API_KEY;
+
+// Optional: debug logs
+if (process.env.OTEL_DEBUG) diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
+
+const provider = new NodeTracerProvider({
+  resource: new Resource({
+    "service.name": process.env.SERVICE_NAME || "my-agent-service",
+    "deployment.environment": process.env.ENV || "dev"
+  })
+});
+
+provider.addSpanProcessor(new BatchSpanProcessor(new OTLPTraceExporter({
+  url: BRIXO_OTLP_ENDPOINT,
+  headers: BRIXO_API_KEY ? { "x-api-key": BRIXO_API_KEY } : {}
+})));
+
+provider.register();
+
+registerInstrumentations({
+  instrumentations: [
+    new HttpInstrumentation({}),
+    new OpenAIInstrumentation({})
+  ]
+});
+
+export {}; // import this file once at app start
+```
+
+## 3) Optional: Semantic steps
+- Initialize OpenLLMetry/Traceloop for Node (see their docs) to produce workflow/task/tool spans.
+- If you skip this, Brixo still infers steps.
+
+## 4) Verify
+- Start your app with `-r ./tracing.js` (or import `tracing.ts` at bootstrap).
+- Trigger OpenAI calls; confirm spans in Brixo.

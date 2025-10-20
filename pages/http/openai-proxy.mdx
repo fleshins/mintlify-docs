@@ -1,0 +1,395 @@
+---
+title: "OpenAI Proxy — HTTP API"
+description: "A lightweight HTTP API that proxies a subset of OpenAI endpoints and manages batch jobs and files. This document consolidates behavior, standardizes response formats, and adds examples so you can integrate quickly and reliably."
+---
+
+## Base URL & Versioning
+
+- **Base URL:** [https://proxy-integration.dev.gcsandbox.com/](https://proxy-integration.dev.gcsandbox.com/api/providers/open_ai/)
+- **Service prefix:** `/api/providers/open_ai/v1`
+- **Spec version:** `2025-08-18`
+- **Status:** Private, subject to change
+
+> All timestamps are Unix epoch seconds unless otherwise noted. All request/response bodies are JSON unless otherwise noted.
+> 
+
+## Authentication
+
+Provide a bearer token for the calling organization.
+
+```
+Authorization: Bearer <token>
+
+```
+
+- Missing/invalid tokens currently yield **`401 Unauthorized`** or **`400 Bad Request`** (service behavior). Consider standardizing to **401** for missing/invalid and **403** for insufficient permissions.
+
+## Content Types
+
+- JSON requests: `Content-Type: application/json`
+- File uploads: `Content-Type: multipart/form-data`
+- JSON Lines content (streamed file content): `Content-Type: application/x-ndjson`
+
+## Errors (OpenAI‑style)
+
+Errors are returned with an OpenAI‑style envelope:
+
+```json
+{
+  "error": {
+    "type": "invalid_request_error",
+    "code": "not_found",
+    "message": "batch does not exist",
+    "param": "batch_id"
+  }
+}
+
+```
+
+### Common HTTP Status Codes
+
+| Code | When |
+| --- | --- |
+| 200 OK | Successful GET/DELETE (and some POSTs in current behavior) |
+| 201 Created | Successful resource creation (upload, batch) |
+| 400 Bad Request | Malformed ID, invalid parameters |
+| 401 Unauthorized | Missing/invalid bearer token |
+| 403 Forbidden | Token valid but lacks access (if implemented) |
+| 404 Not Found | Unknown `file_id`/`batch_id` |
+| 409 Conflict | Resource not in a ready state (e.g., file not processed) |
+| 429 Too Many Requests | Rate limited (if implemented) |
+| 5xx | Server-side errors |
+
+---
+
+# Endpoints
+
+## Files
+
+### POST `/api/providers/open_ai/v1/files`
+
+Upload a newline-delimited JSON file (**.jsonl**) for batch processing.
+
+**Form fields**
+
+- `file` (**binary**, required): `.jsonl` file
+- `purpose` (**string**, required): must be `"batch"`
+
+**Response**
+
+- `200 OK` *(current behavior; 201 recommended)*
+
+```json
+{
+  "id": "file-uuid",
+  "object": "file",
+  "bytes": 12345,
+  "created_at": 1710000000,
+  "expires_at": null,
+  "filename": "data.jsonl",
+  "purpose": "batch",
+  "status": "uploaded" // possible: uploaded | validating | ready | failed
+}
+
+```
+
+**Example**
+
+```bash
+curl -X POST http://localhost:3000/api/providers/open_ai/v1/files \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "file=@/path/to/data.jsonl" \
+  -F "purpose=batch"
+
+```
+
+### JSONL Expectations
+
+Each line must be a valid JSON object. For OpenAI-style batch requests, lines typically look like:
+
+```json
+{"custom_id": "job-1", "method": "POST", "url": "/v1/chat/completions", "body": {"model": "gpt-4o-mini", "messages": [{"role": "user", "content": "Hello"}]}}
+
+```
+
+---
+
+### GET `/api/providers/open_ai/v1/files/{file_id}/content`
+
+Stream raw file content once the upload has been fully processed.
+
+**Responses**
+
+- `200 OK` with `Content-Type: application/x-ndjson` (or the original content type). Body streams the `.jsonl` content.
+- `409 Conflict` if the file is not yet ready.
+- `404 Not Found` if `file_id` is unknown.
+
+**Examples**
+
+```bash
+# Download processed file content to output.jsonl
+curl -L -X GET \
+  http://localhost:3000/api/providers/open_ai/v1/files/file-uuid/content \
+  -H "Authorization: Bearer $TOKEN" \
+  -o output.jsonl
+
+```
+
+**409 Conflict**
+
+```json
+{
+  "error": {
+    "code": "conflict",
+    "message": "file upload not completed or failed",
+    "param": "file_id",
+    "type": "invalid_request_error"
+  }
+}
+
+```
+
+**404 Not Found**
+
+```json
+{
+  "error": {
+    "code": "not_found",
+    "message": "file does not exist",
+    "param": "file_id",
+    "type": "invalid_request_error"
+  }
+}
+
+```
+
+---
+
+### DELETE `/api/providers/open_ai/v1/files/{file_id}`
+
+Delete a file both locally and on OpenAI.
+
+**Responses**
+
+- `200 OK`
+
+```json
+{ "id": "file-uuid", "object": "file", "deleted": true }
+
+```
+
+- `404 Not Found` with the error envelope above when the file does not exist
+
+**Example**
+
+```bash
+curl -X DELETE \
+  http://localhost:3000/api/providers/open_ai/v1/files/file-uuid \
+  -H "Authorization: Bearer $TOKEN"
+
+```
+
+---
+
+## Batches
+
+### POST `/api/providers/open_ai/v1/batches`
+
+Create a batch that consumes a previously uploaded input file.
+
+**Request body**
+
+```json
+{
+  "input_file_id": "file-uuid",                       // required
+  "endpoint": "/v1/chat/completions",                 // required (OpenAI endpoint path)
+  "completion_window": "24h",                          // required (currently only "24h")
+  "metadata": {"job": "example"}                      // optional object
+}
+
+```
+
+**Response**
+
+- `200 OK` *(current behavior; 201 recommended)*
+
+```json
+{
+  "id": "batch_1",
+  "object": "batch",
+  "endpoint": "/v1/chat/completions",
+  "status": "validating", // lifecycle below
+  "input_file_id": "file-uuid",
+  "output_file_id": null,
+  "error_file_id": null,
+  "request_counts": {
+    "total": 0,
+    "completed": 0,
+    "failed": 0,
+    "in_progress": 0
+  },
+  "created_at": 1710000000,
+  "expires_at": 1710086400,
+  "completion_window": "24h",
+  "metadata": {"job": "example"}
+}
+
+```
+
+**Status lifecycle** *(indicative)*
+
+- `validating` → `queued` → `running` → `completed` | `failed` | `expired`
+- When finished, `output_file_id` and/or `error_file_id` will be populated. Use **GET file content** to download them.
+
+**Example**
+
+```bash
+curl -X POST http://localhost:3000/api/providers/open_ai/v1/batches \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "input_file_id": "file-uuid",
+        "endpoint": "/v1/chat/completions",
+        "completion_window": "24h",
+        "metadata": {"job": "example"}
+      }'
+
+```
+
+---
+
+### GET `/api/providers/open_ai/v1/batches/{batch_id}`
+
+Retrieve batch status.
+
+**Path rules**
+
+- `batch_id` must match `batch_<number>`; malformed IDs return `400 Bad Request`.
+- Unknown IDs return `404 Not Found`.
+
+**Response**
+
+- `200 OK` with the same structure as batch creation.
+
+**404 Not Found**
+
+```json
+{
+  "error": {
+    "code": "not_found",
+    "message": "batch does not exist",
+    "param": "batch_id",
+    "type": "invalid_request_error"
+  }
+}
+
+```
+
+**Example**
+
+```bash
+curl -X GET \
+  http://localhost:3000/api/providers/open_ai/v1/batches/batch_1 \
+  -H "Authorization: Bearer $TOKEN"
+
+```
+
+---
+
+### POST `/api/providers/open_ai/v1/chat/completions`
+
+Pass-through to OpenAI `POST /v1/chat/completions`.
+
+**Behavior**
+
+- Request body and headers should follow OpenAI spec.
+- Response mirrors OpenAI (status, headers, shape). If `stream: true`, the response is **SSE**.
+
+**Example**
+
+```bash
+curl -N -X POST http://localhost:3000/api/providers/open_ai/v1/chat/completions \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"gpt-4o-mini","messages":[{"role":"user","content":"Hello"}], "stream": true}'
+
+```
+
+**Non-streaming sample**
+
+```json
+{
+  "id": "chatcmpl-abc123",
+  "choices": [
+    { "index": 0, "message": {"role": "assistant", "content": "Hi!"} }
+  ]
+}
+
+```
+
+---
+
+### POST `/api/providers/open_ai/v1/embeddings`
+
+Pass-through to OpenAI `POST /v1/embeddings`.
+
+**Example**
+
+```bash
+curl -X POST http://localhost:3000/api/providers/open_ai/v1/embeddings \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"text-embedding-3-large","input":"Hello world"}'
+
+```
+
+**Response**
+
+```json
+{
+  "data": [
+    { "object": "embedding", "embedding": [0.1, 0.2], "index": 0 }
+  ]
+}
+
+```
+
+---
+
+## Quickstart
+
+1. **Health check**
+    
+    ```bash
+    curl -sSf http://localhost:3000/health_check
+    
+    ```
+    
+2. **Upload JSONL**
+    
+    ```bash
+    curl -X POST "$BASE/api/providers/open_ai/v1/files" \
+      -H "Authorization: Bearer $TOKEN" \
+      -F "file=@data.jsonl" -F "purpose=batch"
+    
+    ```
+    
+    Save the returned `file-uuid`.
+    
+3. **Create batch**
+    
+    ```bash
+    curl -X POST "$BASE/api/providers/open_ai/v1/batches" \
+      -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+      -d '{"input_file_id":"file-uuid","endpoint":"/v1/chat/completions","completion_window":"24h"}'
+    
+    ```
+    
+4. **Poll batch** until `completed`/`failed` and note `output_file_id`/`error_file_id`.
+5. **Download output**
+    
+    ```bash
+    curl -L -H "Authorization: Bearer $TOKEN" \
+      "$BASE/api/providers/open_ai/v1/files/<output_file_id>/content" -o results.jsonl
+    
+    ```

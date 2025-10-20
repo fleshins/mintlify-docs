@@ -1,0 +1,31 @@
+---
+title: "Frameworks & Semantic Steps"
+description: "Brixo works with raw spans only (OpenAI/HTTP/tool) and will infer steps automatically. If you prefer explicit step labels, enable Traceloop/OpenLLMetry."
+---
+
+## Out‑of‑the‑box (no annotations required)
+- **LangChain (Py/JS)** — OpenAI calls + HTTP/tooling captured via OTEL
+- **LlamaIndex (Py)** — OpenAI spans via OTEL
+- **CrewAI / smolagents / LangGraph** — captured at the API/tool layer via OTEL
+
+> If your framework is not listed, raw spans still work. You can add semantic steps later.
+
+## Optional: annotated steps (Traceloop/OpenLLMetry)
+Use decorators/annotations to mark **workflow/task/agent/tool** steps. Example (Python):
+
+```python
+from openllmetry.decorators import workflow, task
+
+@workflow(name="research_bridge_time")
+def run():
+    lookup_speed()
+    lookup_length()
+
+@task()
+def lookup_speed():
+    ...
+```
+
+### If your framework isn’t supported
+- Keep OTEL on → Brixo infers steps from timing, parent/child links, tools/models.
+- Optionally wrap only **top‑level** functions with annotations for stable labels.

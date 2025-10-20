@@ -16,33 +16,42 @@
           {
             "group": "Getting started",
             "pages": [
-              "index",
-              "quickstart",
-              "development"
+              "quickstart"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Ingestion",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "ingestion/overview",
+              "ingestion/python",
+              "ingestion/typescript",
+              "ingestion/frameworks"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "HTTP APIs",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
+              "http/openai-proxy"
             ]
           },
           {
-            "group": "AI tools",
+            "group": "Privacy & Security",
             "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "privacy/redaction"
+            ]
+          },
+          {
+            "group": "Troubleshooting",
+            "pages": [
+              "troubleshooting"
+            ]
+          },
+          {
+            "group": "Reference",
+            "pages": [
+              "reference/env-vars",
+              "reference/span-schema",
+              "reference/changelog"
             ]
           }
         ]
@@ -51,18 +60,9 @@
         "tab": "API reference",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "OpenAI Proxy",
             "pages": [
-              "api-reference/introduction"
-            ]
-          },
-          {
-            "group": "Endpoint examples",
-            "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "http/openai-proxy"
             ]
           }
         ]
@@ -71,14 +71,9 @@
     "global": {
       "anchors": [
         {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
+          "anchor": "Dashboard",
+          "href": "https://app.brixo.com",
+          "icon": "squares-2x2"
         }
       ]
     }
@@ -96,21 +91,21 @@
     ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
+      "label": "Sign in",
+      "href": "https://app.brixo.com"
     }
   },
   "contextual": {
     "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "perplexity",
+      "mcp",
+      "cursor",
+      "vscode"
+    ]
   },
   "footer": {
     "socials": {

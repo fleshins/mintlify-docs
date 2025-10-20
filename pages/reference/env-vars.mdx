@@ -1,0 +1,14 @@
+---
+title: 'Reference: Environment Variables'
+description: 'Environment variables and their purpose'
+---
+
+| Variable | Purpose | Example |
+| --- | --- | --- |
+| `BRIXO_OTLP_ENDPOINT` | OTEL traces endpoint | `https://collector.brixo.example/v1/traces` |
+| `BRIXO_API_KEY` | Auth header for Brixo collector | `xyz123` |
+| `SERVICE_NAME` | OTEL service.name resource | `my-agent` |
+| `ENV` | deployment.environment | `dev` / `prod` |
+| `OTEL_TRACES_SAMPLER` | Sampling policy | `always_on` (staging) |
+| `TRACELOOP_TRACE_CONTENT` | Capture prompt/completion text | `true` (dev) / `false` (prod)` |
+| `TRACELOOP_SAFE_MODE` | Aggressive redaction (if supported) | `true` |

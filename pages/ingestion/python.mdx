@@ -1,0 +1,78 @@
+---
+title: "Python Setup (OTEL + optional semantic steps)"
+description: "Python Setup (OTEL + optional semantic steps)"
+---
+
+## 1) Install packages
+
+```bash
+pip install opentelemetry-sdk opentelemetry-exporter-otlp \
+            opentelemetry-instrumentation-requests opentelemetry-instrumentation-httpx \
+            opentelemetry-instrumentation-openai
+# (Optional) Semantic steps via Traceloop/OpenLLMetry
+pip install openllmetry  # or the SDK package specified by Traceloop/OpenLLMetry docs
+```
+
+## 2) Minimal OTEL init (export to Brixo)
+
+```
+import os
+from opentelemetry import trace
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.requests import RequestsInstrumentor
+from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+from opentelemetry.instrumentation.openai import OpenAIInstrumentor
+
+BRIXO_OTLP_ENDPOINT = os.getenv("BRIXO_OTLP_ENDPOINT", "https://collector.brixo.example/v1/traces")
+BRIXO_API_KEY = os.getenv("BRIXO_API_KEY")
+
+trace.set_tracer_provider(TracerProvider(resource=Resource.create({
+    "service.name": os.getenv("SERVICE_NAME", "my-agent-service"),
+    "deployment.environment": os.getenv("ENV", "dev")
+})))
+provider = trace.get_tracer_provider()
+provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(
+    endpoint=BRIXO_OTLP_ENDPOINT,
+    headers={"x-api-key": BRIXO_API_KEY} if BRIXO_API_KEY else None,
+)))
+
+RequestsInstrumentor().instrument()
+HTTPXClientInstrumentor().instrument()
+OpenAIInstrumentor().instrument()
+```
+
+## 3) Optional: Semantic steps (Traceloop/OpenLLMetry)
+
+If you want **explicit workflow/task/agent/tool** spans in addition to raw spans, initialize OpenLLMetry and (optionally) annotate key functions. Brixo still works without this; we’ll infer steps.
+
+```
+# Pseudocode — consult OpenLLMetry docs for exact imports/init
+from openllmetry import Traceloop
+from openllmetry.decorators import workflow, task, agent, tool
+
+Traceloop.init(app_name="my-agent-app")
+
+@workflow(name="research_bridge_time")
+def run_task():
+    lookup_speed()
+    lookup_length()
+    compute()
+
+@task()
+def lookup_speed():
+```
+
+### Privacy / PII (recommended envs)
+```
+# Keep content in dev, strip content in prod unless you need it
+export TRACELOOP_TRACE_CONTENT=true   # dev
+# export TRACELOOP_TRACE_CONTENT=false  # prod
+```
+
+### 4) Verify
+Run your agent, confirm spans appear in Brixo (service and environment match your env vars).
+
+If missing OpenAI spans, ensure `opentelemetry-instrumentation-openai` is importable and instrumented before first OpenAI call.

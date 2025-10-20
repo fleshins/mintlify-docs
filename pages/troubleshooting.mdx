@@ -1,0 +1,18 @@
+---
+title: 'Troubleshooting'
+description: 'Tips for troubleshooting and debugging'
+---
+
+### I don’t see OpenAI spans
+- Ensure `opentelemetry-instrumentation-openai` is installed and instrumented **before** your first model call.
+- Confirm exporter endpoint and API key env vars.
+
+### I only see a few spans (too flat)
+- If using Traceloop/OpenLLMetry, ensure native OTEL instrumentations (OpenAI/HTTP) are enabled alongside it.
+- Disable any sampler dropping child spans; try `OTEL_TRACES_SAMPLER=always_on` in staging.
+
+### My prompts are missing
+- You may have content tracing disabled. In dev, set `TRACELOOP_TRACE_CONTENT=true`.
+
+### High cardinality / too many spans
+- Start with raw OTEL only. Add semantic steps only for stable, top‑level functions.

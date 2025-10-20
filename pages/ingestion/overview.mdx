@@ -1,0 +1,15 @@
+---
+title: 'Ingestion Overview'
+description: 'Brixo supports three complementary ingestion modes'
+---
+
+1. **Raw OTEL spans (recommended baseline)**  
+   Capture **OpenAI**, **HTTP**, and **tool** spans using OpenTelemetry. Brixo parses `gen_ai.*` attributes, HTTP metadata, and timing to power analytics and inferred steps.
+
+2. **Semantic step spans (optional)**  
+   Add **Traceloop/OpenLLMetry** to label workflows and tasks (e.g., `step: Research bridge length`). These sit above raw spans for a clean, non‑engineer timeline.
+
+3. **HTTP Proxy (OpenAI)**  
+   A drop‑in proxy for OpenAI files/batches/requests. Helpful for jobs and consistent response shapes.
+
+> **No lock‑in:** Use any single mode or all three. You’ll still get timelines and analytics.
