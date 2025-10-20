@@ -2,15 +2,12 @@
 title: "Brixo Proxy & Traces API"
 description: "A lightweight HTTP API that proxies LLM endpoints across providers and ingests observability data (traces + observations). This guide adds a copy‑paste Quick Start, organized by real‑world use cases, and standardizes examples and responses for fast, reliable integration."
 ---
-# Brixo Proxy & Traces API
 
 > **Status:** Private preview
-> 
-> 
+>
 > **Spec version:** 2025-08-18
-> 
+>
 > **Breaking changes possible**
-> 
 
 ---
 
@@ -26,16 +23,13 @@ description: "A lightweight HTTP API that proxies LLM endpoints across providers
 
 # **1) Quick Start (under 5 minutes)**
 
-<aside>
-🔮
-
-Note that all API usage examples are provided using cUrl and bash commands. Adapt these API calls to whatever language / environment your LLM-powered application is running in.
-
-</aside>
+<Info>
+  🔮 Note that all API usage examples are provided using cUrl and bash commands. Adapt these API calls to whatever language / environment your LLM-powered application is running in.
+</Info>
 
 ## Authentication
 
-To get started you’ll need a Brixo API key provided to you by your account team. 
+To get started you’ll need a Brixo API key provided to you by your account team.
 
 Pass the API key as a `Bearer` in the `Authorization` HTTP request header like so:
 
@@ -59,7 +53,6 @@ There are two ways to share your inference with us:
 ## Copy, Paste, and Run Examples
 
 > Replace `$BRIXO_KEY` with your Brixo API Key and, if using the Brixo Proxy, any LLM provider keys.
-> 
 
 ### **1.1 Set up env**
 
@@ -70,12 +63,9 @@ export LLM_PROVIDER_KEY="<YOUR_LLM_PROVIDER_API_KEY>" # if using the Brixo Proxy
 
 ### **1.2 Hello World via Brixo Proxy (OpenAI example)**
 
-<aside>
-🛠️
-
-**Managed API keys:** If Brixo stores your LLM Provider API keys, omit the `LLM_PROVIDER_KEY` env var (above) and the `Authorization` header (below).
-
-</aside>
+<Info>
+  🛠️ **Managed API keys:** If Brixo stores your LLM Provider API keys, omit the `LLM_PROVIDER_KEY` env var (above) and the `Authorization` header (below).
+</Info>
 
 ```bash
 curl -sv -X POST [https://proxy.brixo.com/api.openai.com/v1/chat/completions](https://proxy.brixo.com/api.openai.com/v1/chat/completions) \
@@ -192,14 +182,14 @@ curl -sv -X POST https://api.brixo.com/instrumentation/tracing/v1/observations \
 
 1. [**Create Trace**](https://www.notion.so/Brixo-Proxy-Traces-API-Developer-Guide-27029b346a988000882af102ad1e80b3?pvs=21)
 2. [**Create Observations (scoped by Trace)**](https://www.notion.so/Brixo-Proxy-Traces-API-Developer-Guide-27029b346a988000882af102ad1e80b3?pvs=21)
-3. [**Create Trace *with* Observations**](https://www.notion.so/Brixo-Proxy-Traces-API-Developer-Guide-27029b346a988000882af102ad1e80b3?pvs=21)
+3. [**_Create Trace with Observations_**](https://www.notion.so/Brixo-Proxy-Traces-API-Developer-Guide-27029b346a988000882af102ad1e80b3?pvs=21)
 
 ## JSON:API • Conventions
 
 - **Media type**
-    - Requests: `Content-Type: application/vnd.api+json`
-    - Responses: `Content-Type: application/vnd.api+json`
-    - Clients SHOULD send `Accept: application/vnd.api+json`
+  - Requests: `Content-Type: application/vnd.api+json`
+  - Responses: `Content-Type: application/vnd.api+json`
+  - Clients SHOULD send `Accept: application/vnd.api+json`
 - **Top-level members:** `data | errors | meta | links | jsonapi (optional)`
 - **Auth:** `Authorization: Bearer <Brixo_API_key>`
 - **Timestamps:** RFC3339 (e.g., `2025-09-17T12:34:56Z`)
@@ -225,7 +215,6 @@ curl -sv -X POST https://api.brixo.com/instrumentation/tracing/v1/observations \
     }
   }
 }
-
 ```
 
 **Response — 201 Created**
@@ -251,7 +240,6 @@ curl -sv -X POST https://api.brixo.com/instrumentation/tracing/v1/observations \
     "links": { "self": "/traces/tr_01JABC" }
   }
 }
-
 ```
 
 ## Create Observations (scoped by Trace)
@@ -332,10 +320,9 @@ curl -sv -X POST https://api.brixo.com/instrumentation/tracing/v1/observations \
     "links": { "self": "/traces/tr_01JABC/observations/ob_01JXYZ" }
   }
 }
-
 ```
 
-## Create Trace *with* Observations
+## Create Trace _with_ Observations
 
 - **Route:** `POST /instrumentation/tracing/v1/traces`
 - **Purpose:** Create a `trace` and its `observations` in one request.
@@ -380,16 +367,15 @@ curl -sv -X POST https://api.brixo.com/instrumentation/tracing/v1/observations \
     }
   }
 }
-
 ```
 
 ### Semantics & Rules
 
 - `data` (trace)
-    - `type` must be `"trace`
+  - `type` must be `"trace`
 - `relationships.observations.data`
-    - Array of **full `observation` resource objects**.
-    - Each item must have `type: "observation"` and valid attributes per the Observation resource spec.
+  - Array of **`full observation resource objects`**.
+  - Each item must have `type: "observation"` and valid attributes per the Observation resource spec.
 
 ---
 
@@ -422,7 +408,6 @@ curl -sv -X POST https://api.brixo.com/instrumentation/tracing/v1/observations \
     }
   ]
 }
-
 ```
 
 ### 422 Unprocessable Entity
@@ -439,7 +424,6 @@ curl -sv -X POST https://api.brixo.com/instrumentation/tracing/v1/observations \
     }
   ]
 }
-
 ```
 
 # 4) Resources
@@ -451,22 +435,21 @@ curl -sv -X POST https://api.brixo.com/instrumentation/tracing/v1/observations \
 **Route (plural):** `/traces`
 
 > A trace is a container for a run/session
-> 
 
 ### Attributes
 
-| Attribute | Details | Type / Format | Notes & Validation |
-| --- | --- | --- | --- |
-| `name` | optional | `string` (1–128) | Human-readable label. |
-| `project` | optional | `string` (1–128) | Logical grouping. |
-| `environment` | required | `string` | e.g., `prod`, `staging`, `dev`, or custom. |
-| `client` | optional | `object` | `{ sdk?: string, version?: string, user_agent?: string }`. |
-| `metadata` | optional | `object` | Freeform JSON; ≤ 16 KB serialized, depth ≤ 3. |
-| `started_at` | optional | RFC3339 timestamp | Trace start. |
-| `ended_at` | optional | RFC3339 timestamp | Must be ≥ `started_at`. |
-| `status` | optional | enum | One of: `success`, `error`, `timeout`, `cancelled`. |
-| `error` | optional | `object` | `{ code: string, type?: string, message: string, retryable?: boolean }`. |
-| `metrics` | optional | `array<object>` | `{ name: string (1–64, [A-Za-z0-9_.-]), value: number, scale?: string, source?: "human" \| "auto", at?: RFC3339 }`. |
+| Attribute     | Details  | Type / Format     | Notes & Validation                                                                                                 |
+| ------------- | -------- | ----------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `name`        | optional | `string` (1–128)  | Human-readable label.                                                                                              |
+| `project`     | optional | `string` (1–128)  | Logical grouping.                                                                                                  |
+| `environment` | required | `string`          | e.g., `prod`, `staging`, `dev`, or custom.                                                                         |
+| `client`      | optional | `object`          | `{ sdk?: string, version?: string, user_agent?: string }`.                                                         |
+| `metadata`    | optional | `object`          | Freeform JSON; ≤ 16 KB serialized, depth ≤ 3.                                                                      |
+| `started_at`  | optional | RFC3339 timestamp | Trace start.                                                                                                       |
+| `ended_at`    | optional | RFC3339 timestamp | Must be ≥ `started_at`.                                                                                            |
+| `status`      | optional | enum              | One of: `success`, `error`, `timeout`, `cancelled`.                                                                |
+| `error`       | optional | `object`          | `{ code: string, type?: string, message: string, retryable?: boolean }`.                                           |
+| `metrics`     | optional | `array<object>`   | `{ name: string (1–64, [A-Za-z0-9_.-]), value: number, scale?: string, source?: "human" \| "auto", at?: RFC3339 }`. |
 
 ## 2) Observation
 
@@ -475,33 +458,32 @@ curl -sv -X POST https://api.brixo.com/instrumentation/tracing/v1/observations \
 **All routes are nested:** `/traces/{trace_id}/observations[...]`
 
 > An observation is an atomic step inside a trace (e.g., LLM call, tool call, retrieval, eval).
-> 
 
 ### Attributes
 
-| Attribute | Details | Type / Format | Notes & Validation |
-| --- | --- | --- | --- |
-| `name` | optional | `string` (1–128) | Step label. |
-| `kind` | required | enum | One of: `llm`, `tool`, `retrieval`, `rerank`, `eval`, `system`. |
-| `started_at` | required | RFC3339 timestamp | Step start time. |
-| `ended_at` | required | RFC3339 timestamp | Must be ≥ `started_at`. |
-| `status` | optional | enum | One of: `success`, `error`, `timeout`, `cancelled`. |
-| `error` | optional | `object` | `{ code, type?, message, retryable?, provider_code? }`. |
-| `provider` | required | `string` | e.g., `openai`, `anthropic`, `vertex`. |
-| `model` | required | `string` | e.g., `gpt-4o-mini`. |
-| `model_version` | optional | `string` | Provider/model release string. |
-| `parameters` | required | `object` | E.g., `temperature`, `top_p`, `max_output_tokens`, `stop`, `seed`, `tool_choice`. |
-| `endpoint` | required | `string` | e.g., `chat.completions`. |
-| `region` | optional | `string` | Cloud/region id. |
-| `provider_request_id` | optional | `string` | Upstream correlation. |
-| `provider_response_id` | optional | `string` | Upstream correlation. |
-| `input` | required | `object` | **Freeform JSON** (any valid object). |
-| `output` | required | `object` | **Freeform JSON** (any valid object). |
-| `usage` | optional | `object` | `{ input_tokens?, output_tokens?, total_tokens?, compute_time_ms?, input_time_ms?, output_time_ms?, total_time_ms? }` (non-negative). |
-| `cost` | optional | `object` | `{ total: number, currency?: string = "USD", estimated?: boolean }` (non-negative). |
-| `metrics` | optional | `array<object>` | Same shape as trace `metrics`. |
-| `metadata` | optional | `object` | Freeform JSON; ≤ 16 KB serialized, depth ≤ 3. |
-| `ingested_at` | server defined | RFC3339 timestamp | Server receive/commit time. |
+| Attribute              | Details        | Type / Format     | Notes & Validation                                                                                                                    |
+| ---------------------- | -------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`                 | optional       | `string` (1–128)  | Step label.                                                                                                                           |
+| `kind`                 | required       | enum              | One of: `llm`, `tool`, `retrieval`, `rerank`, `eval`, `system`.                                                                       |
+| `started_at`           | required       | RFC3339 timestamp | Step start time.                                                                                                                      |
+| `ended_at`             | required       | RFC3339 timestamp | Must be ≥ `started_at`.                                                                                                               |
+| `status`               | optional       | enum              | One of: `success`, `error`, `timeout`, `cancelled`.                                                                                   |
+| `error`                | optional       | `object`          | `{ code, type?, message, retryable?, provider_code? }`.                                                                               |
+| `provider`             | required       | `string`          | e.g., `openai`, `anthropic`, `vertex`.                                                                                                |
+| `model`                | required       | `string`          | e.g., `gpt-4o-mini`.                                                                                                                  |
+| `model_version`        | optional       | `string`          | Provider/model release string.                                                                                                        |
+| `parameters`           | required       | `object`          | E.g., `temperature`, `top_p`, `max_output_tokens`, `stop`, `seed`, `tool_choice`.                                                     |
+| `endpoint`             | required       | `string`          | e.g., `chat.completions`.                                                                                                             |
+| `region`               | optional       | `string`          | Cloud/region id.                                                                                                                      |
+| `provider_request_id`  | optional       | `string`          | Upstream correlation.                                                                                                                 |
+| `provider_response_id` | optional       | `string`          | Upstream correlation.                                                                                                                 |
+| `input`                | required       | `object`          | **Freeform JSON** (any valid object).                                                                                                 |
+| `output`               | required       | `object`          | **Freeform JSON** (any valid object).                                                                                                 |
+| `usage`                | optional       | `object`          | `{ input_tokens?, output_tokens?, total_tokens?, compute_time_ms?, input_time_ms?, output_time_ms?, total_time_ms? }` (non-negative). |
+| `cost`                 | optional       | `object`          | `{ total: number, currency?: string = "USD", estimated?: boolean }` (non-negative).                                                   |
+| `metrics`              | optional       | `array<object>`   | Same shape as trace `metrics`.                                                                                                        |
+| `metadata`             | optional       | `object`          | Freeform JSON; ≤ 16 KB serialized, depth ≤ 3.                                                                                         |
+| `ingested_at`          | server defined | RFC3339 timestamp | Server receive/commit time.                                                                                                           |
 
 ### Relationships (JSON:API form in responses)
 
