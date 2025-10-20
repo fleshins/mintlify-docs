@@ -16,42 +16,42 @@
           {
             "group": "Getting started",
             "pages": [
-              "quickstart"
+              "pages/quickstart"
             ]
           },
           {
             "group": "Ingestion",
             "pages": [
-              "ingestion/overview",
-              "ingestion/python",
-              "ingestion/typescript",
-              "ingestion/frameworks"
+              "pages/ingestion/overview",
+              "pages/ingestion/python",
+              "pages/ingestion/typescript",
+              "pages/ingestion/frameworks"
             ]
           },
           {
             "group": "HTTP APIs",
             "pages": [
-              "http/openai-proxy"
+              "pages/http/openai-proxy"
             ]
           },
           {
             "group": "Privacy & Security",
             "pages": [
-              "privacy/redaction"
+              "pages/privacy/redaction"
             ]
           },
           {
             "group": "Troubleshooting",
             "pages": [
-              "troubleshooting"
+              "pages/troubleshooting"
             ]
           },
           {
             "group": "Reference",
             "pages": [
-              "reference/env-vars",
-              "reference/span-schema",
-              "reference/changelog"
+              "pages/reference/env-vars",
+              "pages/reference/span-schema",
+              "pages/reference/changelog"
             ]
           }
         ]
@@ -62,7 +62,7 @@
           {
             "group": "OpenAI Proxy",
             "pages": [
-              "http/openai-proxy"
+              "pages/http/openai-proxy"
             ]
           }
         ]
