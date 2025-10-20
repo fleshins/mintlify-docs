@@ -1,395 +1,541 @@
 ---
-title: "OpenAI Proxy — HTTP API"
-description: "A lightweight HTTP API that proxies a subset of OpenAI endpoints and manages batch jobs and files. This document consolidates behavior, standardizes response formats, and adds examples so you can integrate quickly and reliably."
+title: "Brixo Proxy & Traces API"
+description: "A lightweight HTTP API that proxies LLM endpoints across providers and ingests observability data (traces + observations). This guide adds a copy‑paste Quick Start, organized by real‑world use cases, and standardizes examples and responses for fast, reliable integration."
+---
+# Brixo Proxy & Traces API
+
+> **Status:** Private preview
+> 
+> 
+> **Spec version:** 2025-08-18
+> 
+> **Breaking changes possible**
+> 
+
 ---
 
-## Base URL & Versioning
+# Table of Contents
 
-- **Base URL:** [https://proxy-integration.dev.gcsandbox.com/](https://proxy-integration.dev.gcsandbox.com/api/providers/open_ai/)
-- **Service prefix:** `/api/providers/open_ai/v1`
-- **Spec version:** `2025-08-18`
-- **Status:** Private, subject to change
+1. [**Quick Start (under 5 minutes)**](https://www.notion.so/Brixo-Proxy-Traces-API-Developer-Guide-27029b346a988000882af102ad1e80b3?pvs=21)
+2. [**Concepts**](https://www.notion.so/Brixo-Proxy-Traces-API-Developer-Guide-27029b346a988000882af102ad1e80b3?pvs=21)
+3. [**API Reference**](https://www.notion.so/Brixo-Proxy-Traces-API-Developer-Guide-27029b346a988000882af102ad1e80b3?pvs=21)
+4. [**Resources**](https://www.notion.so/Brixo-Proxy-Traces-API-Developer-Guide-27029b346a988000882af102ad1e80b3?pvs=21)
+5. [**Operational Notes & Best Practices**](https://www.notion.so/Brixo-Proxy-Traces-API-Developer-Guide-27029b346a988000882af102ad1e80b3?pvs=21)
+6. [**Changelog**](https://www.notion.so/Brixo-Proxy-Traces-API-Developer-Guide-27029b346a988000882af102ad1e80b3?pvs=21)
+7. [**Reference Status Codes**](https://www.notion.so/Brixo-Proxy-Traces-API-Developer-Guide-27029b346a988000882af102ad1e80b3?pvs=21)
 
-> All timestamps are Unix epoch seconds unless otherwise noted. All request/response bodies are JSON unless otherwise noted.
-> 
+# **1) Quick Start (under 5 minutes)**
+
+<aside>
+🔮
+
+Note that all API usage examples are provided using cUrl and bash commands. Adapt these API calls to whatever language / environment your LLM-powered application is running in.
+
+</aside>
 
 ## Authentication
 
-Provide a bearer token for the calling organization.
+To get started you’ll need a Brixo API key provided to you by your account team. 
 
-```
-Authorization: Bearer <token>
-
-```
-
-- Missing/invalid tokens currently yield **`401 Unauthorized`** or **`400 Bad Request`** (service behavior). Consider standardizing to **401** for missing/invalid and **403** for insufficient permissions.
-
-## Content Types
-
-- JSON requests: `Content-Type: application/json`
-- File uploads: `Content-Type: multipart/form-data`
-- JSON Lines content (streamed file content): `Content-Type: application/x-ndjson`
-
-## Errors (OpenAI‑style)
-
-Errors are returned with an OpenAI‑style envelope:
-
-```json
-{
-  "error": {
-    "type": "invalid_request_error",
-    "code": "not_found",
-    "message": "batch does not exist",
-    "param": "batch_id"
-  }
-}
-
-```
-
-### Common HTTP Status Codes
-
-| Code | When |
-| --- | --- |
-| 200 OK | Successful GET/DELETE (and some POSTs in current behavior) |
-| 201 Created | Successful resource creation (upload, batch) |
-| 400 Bad Request | Malformed ID, invalid parameters |
-| 401 Unauthorized | Missing/invalid bearer token |
-| 403 Forbidden | Token valid but lacks access (if implemented) |
-| 404 Not Found | Unknown `file_id`/`batch_id` |
-| 409 Conflict | Resource not in a ready state (e.g., file not processed) |
-| 429 Too Many Requests | Rate limited (if implemented) |
-| 5xx | Server-side errors |
-
----
-
-# Endpoints
-
-## Files
-
-### POST `/api/providers/open_ai/v1/files`
-
-Upload a newline-delimited JSON file (**.jsonl**) for batch processing.
-
-**Form fields**
-
-- `file` (**binary**, required): `.jsonl` file
-- `purpose` (**string**, required): must be `"batch"`
-
-**Response**
-
-- `200 OK` *(current behavior; 201 recommended)*
-
-```json
-{
-  "id": "file-uuid",
-  "object": "file",
-  "bytes": 12345,
-  "created_at": 1710000000,
-  "expires_at": null,
-  "filename": "data.jsonl",
-  "purpose": "batch",
-  "status": "uploaded" // possible: uploaded | validating | ready | failed
-}
-
-```
-
-**Example**
+Pass the API key as a `Bearer` in the `Authorization` HTTP request header like so:
 
 ```bash
-curl -X POST http://localhost:3000/api/providers/open_ai/v1/files \
-  -H "Authorization: Bearer $TOKEN" \
-  -F "file=@/path/to/data.jsonl" \
-  -F "purpose=batch"
-
+curl -sv https://api.brixo.com/instrumentation/tracing/v1/observations \
+  -H "Authorization: Bearer $BRIXO_KEY" \
+  -H "Accept: application/vnd.api+json"
 ```
 
-### JSONL Expectations
+There are two ways to share your inference with us:
 
-Each line must be a valid JSON object. For OpenAI-style batch requests, lines typically look like:
+### 1. Proxy your inference through the Brixo Proxy
 
-```json
-{"custom_id": "job-1", "method": "POST", "url": "/v1/chat/completions", "body": {"model": "gpt-4o-mini", "messages": [{"role": "user", "content": "Hello"}]}}
+- **Brixo Proxy** (to ANY LLM provider): `https://proxy.brixo.com/<llm_provider_url>`
+- **LLM Provider credentials:** Either pass the same authentication headers you’d send directly to the LLM provider (e.g., `Authorization: Bearer <key>`, `x-api-key: <key>`), **or** let Brixo store/manage the LLM provider keys for you so you don’t have to pass them in your API calls every time.
 
-```
+### 2. Send traces to us offline
 
----
+- **Tracing ingest (sidecar/offline):** `https://api.brixo.com/instrumentation/tracing/v1/`
 
-### GET `/api/providers/open_ai/v1/files/{file_id}/content`
+## Copy, Paste, and Run Examples
 
-Stream raw file content once the upload has been fully processed.
+> Replace `$BRIXO_KEY` with your Brixo API Key and, if using the Brixo Proxy, any LLM provider keys.
+> 
 
-**Responses**
-
-- `200 OK` with `Content-Type: application/x-ndjson` (or the original content type). Body streams the `.jsonl` content.
-- `409 Conflict` if the file is not yet ready.
-- `404 Not Found` if `file_id` is unknown.
-
-**Examples**
+### **1.1 Set up env**
 
 ```bash
-# Download processed file content to output.jsonl
-curl -L -X GET \
-  http://localhost:3000/api/providers/open_ai/v1/files/file-uuid/content \
-  -H "Authorization: Bearer $TOKEN" \
-  -o output.jsonl
-
+export BRIXO_KEY="<YOUR_BRIXO_API_KEY>"
+export LLM_PROVIDER_KEY="<YOUR_LLM_PROVIDER_API_KEY>" # if using the Brixo Proxy
 ```
 
-**409 Conflict**
+### **1.2 Hello World via Brixo Proxy (OpenAI example)**
 
-```json
-{
-  "error": {
-    "code": "conflict",
-    "message": "file upload not completed or failed",
-    "param": "file_id",
-    "type": "invalid_request_error"
-  }
-}
+<aside>
+🛠️
 
-```
+**Managed API keys:** If Brixo stores your LLM Provider API keys, omit the `LLM_PROVIDER_KEY` env var (above) and the `Authorization` header (below).
 
-**404 Not Found**
-
-```json
-{
-  "error": {
-    "code": "not_found",
-    "message": "file does not exist",
-    "param": "file_id",
-    "type": "invalid_request_error"
-  }
-}
-
-```
-
----
-
-### DELETE `/api/providers/open_ai/v1/files/{file_id}`
-
-Delete a file both locally and on OpenAI.
-
-**Responses**
-
-- `200 OK`
-
-```json
-{ "id": "file-uuid", "object": "file", "deleted": true }
-
-```
-
-- `404 Not Found` with the error envelope above when the file does not exist
-
-**Example**
+</aside>
 
 ```bash
-curl -X DELETE \
-  http://localhost:3000/api/providers/open_ai/v1/files/file-uuid \
-  -H "Authorization: Bearer $TOKEN"
-
-```
-
----
-
-## Batches
-
-### POST `/api/providers/open_ai/v1/batches`
-
-Create a batch that consumes a previously uploaded input file.
-
-**Request body**
-
-```json
-{
-  "input_file_id": "file-uuid",                       // required
-  "endpoint": "/v1/chat/completions",                 // required (OpenAI endpoint path)
-  "completion_window": "24h",                          // required (currently only "24h")
-  "metadata": {"job": "example"}                      // optional object
-}
-
-```
-
-**Response**
-
-- `200 OK` *(current behavior; 201 recommended)*
-
-```json
-{
-  "id": "batch_1",
-  "object": "batch",
-  "endpoint": "/v1/chat/completions",
-  "status": "validating", // lifecycle below
-  "input_file_id": "file-uuid",
-  "output_file_id": null,
-  "error_file_id": null,
-  "request_counts": {
-    "total": 0,
-    "completed": 0,
-    "failed": 0,
-    "in_progress": 0
-  },
-  "created_at": 1710000000,
-  "expires_at": 1710086400,
-  "completion_window": "24h",
-  "metadata": {"job": "example"}
-}
-
-```
-
-**Status lifecycle** *(indicative)*
-
-- `validating` → `queued` → `running` → `completed` | `failed` | `expired`
-- When finished, `output_file_id` and/or `error_file_id` will be populated. Use **GET file content** to download them.
-
-**Example**
-
-```bash
-curl -X POST http://localhost:3000/api/providers/open_ai/v1/batches \
-  -H "Authorization: Bearer $TOKEN" \
+curl -sv -X POST [https://proxy.brixo.com/api.openai.com/v1/chat/completions](https://proxy.brixo.com/api.openai.com/v1/chat/completions) \
   -H "Content-Type: application/json" \
+  -H "Brixo-Auth: Bearer $BRIXO_KEY" \
+  -H "Authorization: Bearer $LLM_PROVIDER_KEY" \
   -d '{
-        "input_file_id": "file-uuid",
-        "endpoint": "/v1/chat/completions",
-        "completion_window": "24h",
-        "metadata": {"job": "example"}
-      }'
+    "model": "gpt-4o-mini",
+    "messages": [{"role":"user","content":"Say hello in one word"}]
+  }'
+```
 
+### **1.3 Sidecar trace (send Brixo a completed inference)**
+
+```bash
+curl -sv -X POST https://api.brixo.com/instrumentation/tracing/v1/traces \
+  -H 'Accept: application/vnd.api+json' \
+  -H "Authorization: Bearer $BRIXO_KEY" \
+  -H 'Content-Type: application/vnd.api+json' \
+  -d '{
+  "data": {
+    "type": "string",
+    "attributes": {
+      "client": {},
+      "error": {},
+      "metadata": {},
+      "metrics": { "latency_ms": 400 },
+      "environment": "production",
+      "started_at": "2025-09-23T03:26:40.132Z",
+      "ended_at": "2025-09-23T03:26:40.132Z",
+      "observations": [
+        {
+          "kind": "llm",
+          "started_at": "2025-09-23T03:26:40.132Z",
+          "ended_at": "2025-09-23T03:26:40.132Z",
+          "provider": "openai",
+          "model": "gpt-5",
+          "endpoint": "chat/completions",
+          "parameters": {
+					  "temperature": 1.0,
+					  "top_p": 1.0,
+					  "frequency_penalty": 0,
+					  "presence_penalty": 0,
+					  "n": 1,
+					  "stream": false
+					},
+            "input": {
+					    "messages": [
+					      { "role": "user", "content": "Hi there!" }
+					    ]
+					  },
+					  "output": {
+					    "messages": [
+					      { "role": "assistant", "content": "Hello, how can I help you today?" }
+					    ]
+					  },
+          "usage": {},
+          "cost": {},
+          "metrics": { "latency_ms": 400 },
+          "metadata": {}
+        }
+      ]
+    }
+  }
+}'
+```
+
+### **1.4 Attach observations to a trace**
+
+```bash
+curl -sv -X POST https://api.brixo.com/instrumentation/tracing/v1/observations \
+  -H 'Accept: application/vnd.api+json' \
+  -H "Authorization: Bearer $BRIXO_KEY" \
+  -H 'Content-Type: application/vnd.api+json' \
+  -d '{
+  "data": {
+    "type": "string",
+    "attributes": {
+      "kind": "llm",
+      "started_at": "2025-09-23T03:32:10.844Z",
+      "ended_at": "2025-09-23T03:32:10.844Z",
+      "provider": "openai",
+      "model": "gpt-4",
+      "endpoint": "chat/completions",
+      "metrics": { "latency_ms": 400 },
+      "parameters": { "temperature": 0.2, "max_output_tokens": 512 },
+      "input": { "messages": [{ "role": "user", "content": "How do I reset my password?" }] },
+      "output": {
+        "messages": [
+          { "role": "assistant", "content": "Hello, how can I help you today?" }
+        ]
+      }
+    },
+    "relationships": {
+      "trace": {
+        "data": {
+          "type": "string",
+          "id": 1
+        }
+      }
+    }
+  }
+}'
 ```
 
 ---
 
-### GET `/api/providers/open_ai/v1/batches/{batch_id}`
+# **2) Concepts**
 
-Retrieve batch status.
+- **Trace**: Logical unit of work for an inference (request/response, timings, costs, metadata).
+- **Observation**: Child event attached to a trace (retrievals, tool calls, feedback/scores, spans).
 
-**Path rules**
+# 3) API Reference
 
-- `batch_id` must match `batch_<number>`; malformed IDs return `400 Bad Request`.
-- Unknown IDs return `404 Not Found`.
+1. [**Create Trace**](https://www.notion.so/Brixo-Proxy-Traces-API-Developer-Guide-27029b346a988000882af102ad1e80b3?pvs=21)
+2. [**Create Observations (scoped by Trace)**](https://www.notion.so/Brixo-Proxy-Traces-API-Developer-Guide-27029b346a988000882af102ad1e80b3?pvs=21)
+3. [**Create Trace *with* Observations**](https://www.notion.so/Brixo-Proxy-Traces-API-Developer-Guide-27029b346a988000882af102ad1e80b3?pvs=21)
 
-**Response**
+## JSON:API • Conventions
 
-- `200 OK` with the same structure as batch creation.
+- **Media type**
+    - Requests: `Content-Type: application/vnd.api+json`
+    - Responses: `Content-Type: application/vnd.api+json`
+    - Clients SHOULD send `Accept: application/vnd.api+json`
+- **Top-level members:** `data | errors | meta | links | jsonapi (optional)`
+- **Auth:** `Authorization: Bearer <Brixo_API_key>`
+- **Timestamps:** RFC3339 (e.g., `2025-09-17T12:34:56Z`)
 
-**404 Not Found**
+## Create Trace
+
+- **Route:** `POST /instrumentation/tracing/v1/`
+- **Purpose:** Create an empty `trace`, with the intention of subsequently adding one or more `observations` using [the Create Observations endpoint](https://www.notion.so/Brixo-Proxy-Traces-API-Developer-Guide-27029b346a988000882af102ad1e80b3?pvs=21).
+
+**Request**
 
 ```json
 {
-  "error": {
-    "code": "not_found",
-    "message": "batch does not exist",
-    "param": "batch_id",
-    "type": "invalid_request_error"
+  "data": {
+    "type": "trace",
+    "attributes": {
+      "name": "agent_session",
+      "project": "acme",
+      "environment": "prod",
+      "client": { "sdk": "gc-sdk", "version": "1.2.0" },
+      "metadata": { "release": "2025.09.1" },
+      "started_at": "2025-09-17T12:00:00Z"
+    }
   }
 }
 
 ```
 
-**Example**
-
-```bash
-curl -X GET \
-  http://localhost:3000/api/providers/open_ai/v1/batches/batch_1 \
-  -H "Authorization: Bearer $TOKEN"
-
-```
-
----
-
-### POST `/api/providers/open_ai/v1/chat/completions`
-
-Pass-through to OpenAI `POST /v1/chat/completions`.
-
-**Behavior**
-
-- Request body and headers should follow OpenAI spec.
-- Response mirrors OpenAI (status, headers, shape). If `stream: true`, the response is **SSE**.
-
-**Example**
-
-```bash
-curl -N -X POST http://localhost:3000/api/providers/open_ai/v1/chat/completions \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"model":"gpt-4o-mini","messages":[{"role":"user","content":"Hello"}], "stream": true}'
-
-```
-
-**Non-streaming sample**
+**Response — 201 Created**
 
 ```json
 {
-  "id": "chatcmpl-abc123",
-  "choices": [
-    { "index": 0, "message": {"role": "assistant", "content": "Hi!"} }
+  "data": {
+    "type": "trace",
+    "id": "tr_01JABC",
+    "attributes": {
+      "name": "agent_session",
+      "project": "acme",
+      "environment": "prod",
+      "client": { "sdk": "gc-sdk", "version": "1.2.0" },
+      "metadata": { "release": "2025.09.1" },
+      "started_at": "2025-09-17T12:00:00Z",
+      "ended_at": null,
+      "status": null,
+      "error": null,
+      "metrics": [],
+      "ingested_at": "2025-09-17T12:00:01Z"
+    },
+    "links": { "self": "/traces/tr_01JABC" }
+  }
+}
+
+```
+
+## Create Observations (scoped by Trace)
+
+- **Route:** `POST /tracing/v1/observations`
+- **Purpose:** Create an `observation` within a `trace`.
+
+**Request**
+
+```json
+{
+  "data": {
+    "type": "string",
+    "attributes": {
+      "kind": "llm",
+      "started_at": "2025-09-23T03:32:10.844Z",
+      "ended_at": "2025-09-23T03:32:10.844Z",
+      "status": "success",
+      "provider": "openai",
+      "model": "gpt-4",
+      "endpoint": "chat/completions",
+      "parameters": { "temperature": 0.2, "max_output_tokens": 512 },
+      "input": { "messages": [{ "role": "user", "content": "How do I reset my password?" }] },
+      "output": { "a": 1 },
+      "usage": {},
+      "cost": {},
+      "metrics": {},
+      "metadata": {}
+    },
+    "relationships": {
+      "trace": {
+        "data": {
+          "type": "trace",
+          "id": 1
+        }
+      }
+    }
+  }
+}
+```
+
+**Response — 201 Created**
+
+```json
+{
+  "data": {
+    "type": "observation",
+    "id": "ob_01JXYZ",
+    "attributes": {
+      "name": "draft_answer",
+      "kind": "llm",
+      "started_at": "2025-09-17T12:01:03Z",
+      "ended_at": null,
+      "status": null,
+      "error": null,
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "model_version": null,
+      "parameters": { "temperature": 0.2, "max_output_tokens": 512 },
+      "endpoint": "chat.completions",
+      "region": null,
+      "provider_request_id": null,
+      "provider_response_id": null,
+      "input": { "messages": [{ "role": "user", "content": "How do I reset my password?" }] },
+      "output": null,
+      "usage": null,
+      "cost": null,
+      "metrics": [],
+      "metadata": { "release": "2025.09.1" },
+      "ingested_at": "2025-09-17T12:01:04Z"
+    },
+    "relationships": {
+      "trace": {
+        "data": { "type": "trace", "id": "tr_01JABC" },
+        "links": { "related": "/traces/tr_01JABC" }
+      }
+    },
+    "links": { "self": "/traces/tr_01JABC/observations/ob_01JXYZ" }
+  }
+}
+
+```
+
+## Create Trace *with* Observations
+
+- **Route:** `POST /instrumentation/tracing/v1/traces`
+- **Purpose:** Create a `trace` and its `observations` in one request.
+- **Note:** The **request** is a pragmatic extension (JSON:API normally expects identifiers in `relationships`). **Responses** are canonical JSON:API.
+
+### Request (schema)
+
+```json
+{
+  "data": {
+    "type": "trace",
+    "attributes": {
+      "name": "agent_session",
+      "environment": "prod",
+      "started_at": "2025-09-17T12:00:00Z"
+    }
+  },
+  "relationships": {
+    "observations": {
+      "data": [
+        {
+          "type": "observation",
+          "attributes": {
+            "kind": "llm",
+            "name": "draft_answer",
+            "started_at": "2025-09-17T12:01:03Z",
+            "provider": "openai",
+            "model": "gpt-4o-mini",
+            "input": { "messages": [{ "role": "user", "content": "Q1" }] }
+          }
+        },
+        {
+          "type": "observation",
+          "attributes": {
+            "kind": "tool",
+            "name": "search",
+            "started_at": "2025-09-17T12:01:10Z",
+            "input": { "query": "reset password" }
+          }
+        }
+      ]
+    }
+  }
+}
+
+```
+
+### Semantics & Rules
+
+- `data` (trace)
+    - `type` must be `"trace`
+- `relationships.observations.data`
+    - Array of **full `observation` resource objects**.
+    - Each item must have `type: "observation"` and valid attributes per the Observation resource spec.
+
+---
+
+## Response Objects
+
+### 201 Created — success
+
+```json
+{
+  "data": {
+    "type": "trace",
+    "id": "tr_01JABC",
+    "attributes": { "...": "..." },
+    "links": { "self": "/traces/tr_01JABC" }
+  },
+  "included": [
+    {
+      "type": "observation",
+      "id": "ob_01",
+      "attributes": { "...": "..." },
+      "relationships": { "trace": { "data": { "type": "trace", "id": "tr_01JABC" } } },
+      "links": { "self": "/traces/tr_01JABC/observations/ob_01" }
+    },
+    {
+      "type": "observation",
+      "id": "ob_02",
+      "attributes": { "...": "..." },
+      "relationships": { "trace": { "data": { "type": "trace", "id": "tr_01JABC" } } },
+      "links": { "self": "/traces/tr_01JABC/observations/ob_02" }
+    }
   ]
 }
 
 ```
 
----
-
-### POST `/api/providers/open_ai/v1/embeddings`
-
-Pass-through to OpenAI `POST /v1/embeddings`.
-
-**Example**
-
-```bash
-curl -X POST http://localhost:3000/api/providers/open_ai/v1/embeddings \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"model":"text-embedding-3-large","input":"Hello world"}'
-
-```
-
-**Response**
+### 422 Unprocessable Entity
 
 ```json
 {
-  "data": [
-    { "object": "embedding", "embedding": [0.1, 0.2], "index": 0 }
+  "errors": [
+    {
+      "status": "422",
+      "code": "validation_failed",
+      "title": "Validation failed",
+      "detail": "started_at is required",
+      "source": { "pointer": "/relationships/observations/data/1/attributes/started_at" }
+    }
   ]
 }
 
 ```
 
+# 4) Resources
+
+## 1) Trace
+
+**Type:** `trace`
+
+**Route (plural):** `/traces`
+
+> A trace is a container for a run/session
+> 
+
+### Attributes
+
+| Attribute | Details | Type / Format | Notes & Validation |
+| --- | --- | --- | --- |
+| `name` | optional | `string` (1–128) | Human-readable label. |
+| `project` | optional | `string` (1–128) | Logical grouping. |
+| `environment` | required | `string` | e.g., `prod`, `staging`, `dev`, or custom. |
+| `client` | optional | `object` | `{ sdk?: string, version?: string, user_agent?: string }`. |
+| `metadata` | optional | `object` | Freeform JSON; ≤ 16 KB serialized, depth ≤ 3. |
+| `started_at` | optional | RFC3339 timestamp | Trace start. |
+| `ended_at` | optional | RFC3339 timestamp | Must be ≥ `started_at`. |
+| `status` | optional | enum | One of: `success`, `error`, `timeout`, `cancelled`. |
+| `error` | optional | `object` | `{ code: string, type?: string, message: string, retryable?: boolean }`. |
+| `metrics` | optional | `array<object>` | `{ name: string (1–64, [A-Za-z0-9_.-]), value: number, scale?: string, source?: "human" \| "auto", at?: RFC3339 }`. |
+
+## 2) Observation
+
+**Type:** `observation`
+
+**All routes are nested:** `/traces/{trace_id}/observations[...]`
+
+> An observation is an atomic step inside a trace (e.g., LLM call, tool call, retrieval, eval).
+> 
+
+### Attributes
+
+| Attribute | Details | Type / Format | Notes & Validation |
+| --- | --- | --- | --- |
+| `name` | optional | `string` (1–128) | Step label. |
+| `kind` | required | enum | One of: `llm`, `tool`, `retrieval`, `rerank`, `eval`, `system`. |
+| `started_at` | required | RFC3339 timestamp | Step start time. |
+| `ended_at` | required | RFC3339 timestamp | Must be ≥ `started_at`. |
+| `status` | optional | enum | One of: `success`, `error`, `timeout`, `cancelled`. |
+| `error` | optional | `object` | `{ code, type?, message, retryable?, provider_code? }`. |
+| `provider` | required | `string` | e.g., `openai`, `anthropic`, `vertex`. |
+| `model` | required | `string` | e.g., `gpt-4o-mini`. |
+| `model_version` | optional | `string` | Provider/model release string. |
+| `parameters` | required | `object` | E.g., `temperature`, `top_p`, `max_output_tokens`, `stop`, `seed`, `tool_choice`. |
+| `endpoint` | required | `string` | e.g., `chat.completions`. |
+| `region` | optional | `string` | Cloud/region id. |
+| `provider_request_id` | optional | `string` | Upstream correlation. |
+| `provider_response_id` | optional | `string` | Upstream correlation. |
+| `input` | required | `object` | **Freeform JSON** (any valid object). |
+| `output` | required | `object` | **Freeform JSON** (any valid object). |
+| `usage` | optional | `object` | `{ input_tokens?, output_tokens?, total_tokens?, compute_time_ms?, input_time_ms?, output_time_ms?, total_time_ms? }` (non-negative). |
+| `cost` | optional | `object` | `{ total: number, currency?: string = "USD", estimated?: boolean }` (non-negative). |
+| `metrics` | optional | `array<object>` | Same shape as trace `metrics`. |
+| `metadata` | optional | `object` | Freeform JSON; ≤ 16 KB serialized, depth ≤ 3. |
+| `ingested_at` | server defined | RFC3339 timestamp | Server receive/commit time. |
+
+### Relationships (JSON:API form in responses)
+
+```json
+"relationships": {
+  "trace": { "data": { "type": "trace", "id": "<trace_id>" } }
+}
+```
+
+# **5) Operational Notes & Best Practices**
+
+- **Retries:** Exponential backoff for 429/5xx. Respect Retry-After if present.
+- **PII:** If you require automatic redaction, contact us for a tenant‑level policy.
+
 ---
 
-## Quickstart
+# **6) Changelog**
 
-1. **Health check**
-    
-    ```bash
-    curl -sSf http://localhost:3000/health_check
-    
-    ```
-    
-2. **Upload JSONL**
-    
-    ```bash
-    curl -X POST "$BASE/api/providers/open_ai/v1/files" \
-      -H "Authorization: Bearer $TOKEN" \
-      -F "file=@data.jsonl" -F "purpose=batch"
-    
-    ```
-    
-    Save the returned `file-uuid`.
-    
-3. **Create batch**
-    
-    ```bash
-    curl -X POST "$BASE/api/providers/open_ai/v1/batches" \
-      -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-      -d '{"input_file_id":"file-uuid","endpoint":"/v1/chat/completions","completion_window":"24h"}'
-    
-    ```
-    
-4. **Poll batch** until `completed`/`failed` and note `output_file_id`/`error_file_id`.
-5. **Download output**
-    
-    ```bash
-    curl -L -H "Authorization: Bearer $TOKEN" \
-      "$BASE/api/providers/open_ai/v1/files/<output_file_id>/content" -o results.jsonl
-    
-    ```
+- **2025‑09‑15:** Provider‑neutral examples and wording; removed vendor names in examples; retained legacy /api/providers/open_ai/v1 endpoints (historical naming) but clarified they work with any origin via bxo_origin.
+- **2025‑09‑10:** Switched to provider‑agnostic proxy via bxo_origin; introduced Authorization header; updated examples.
+- **2025‑09‑07:** Major reorg by use case; added Quick Start; added tracing ingest namespace and observation association; standardized cURL blocks; added guidance on idempotency, correlation headers, and size limits.
+- **2025‑08‑18:** Initial consolidated draft (proxy, files, batches).
+
+---
+
+# **7) Appendix – Reference Status Codes**
+
+- 200 OK: Successful GET/DELETE
+- 201 Created: Successful creation
+- 400 Bad Request: Malformed ID, invalid parameters
+- 401 Unauthorized: Missing/invalid token
+- 403 Forbidden: Valid token but lacks access
+- 404 Not Found: Unknown file_id/batch_id
+- 409 Conflict: Resource not ready (e.g., file not processed)
+- 422 Validation Failed: Field/type/enum violations
+- 429 Too Many Requests: Rate limited
+- 5xx: Server‑side errors
