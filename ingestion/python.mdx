@@ -43,7 +43,7 @@ pip install opentelemetry-sdk opentelemetry-exporter-otlp
 pip install traceloop-sdk
 
 # OpenInference instrumentations
-pip install openinference-instrumentation-openai openinference-instrumentation-langchain
+pip install openinference-instrumentation-langchain
 ```
 
 ---
@@ -78,13 +78,6 @@ That's it — your Python app is now sending rich, merged agent traces to **Brix
 
 ---
 
-## Sampling and PII
-
-- **Sampling:** Use `ParentBased(TraceIdRatioBased(0.2))` to manage span volume.
-- **PII:** Redact sensitive data before export. Both OpenLLMetry and OpenInference support custom attribute filtering.
-
----
-
 ## Troubleshooting
 
 **No traces:**
@@ -109,8 +102,3 @@ No. Brixo supports direct OTLP/HTTP export.
 Anything OpenLLMetry or OpenInference supports: OpenAI, Anthropic, LangChain, LlamaIndex, CrewAI, AutoGen, Bedrock, etc.
 
 ---
-
-
-
-
-
