@@ -23,7 +23,12 @@
             "group": "Ingestion",
             "pages": [
               "ingestion/overview",
-              "ingestion/python",
+              {
+                "group": "Python",
+                "pages": [
+                  "langchain_and_langgraph"
+                ]
+              },
               "ingestion/typescript",
               "ingestion/frameworks"
             ]
