@@ -11,7 +11,7 @@ description: "Python Quickstart — Send Agent Traces to Brixo"
 
 1. Install SDKs + OpenTelemetry
 2. Configure the Brixo OTLP endpoint and API key
-3. Initialize Traceloop (OpenLLMetry) and OpenInference
+3. Initialize OpenInference and Traceloop (OpenLLMetry) instrumentation
 4. Run your app — traces flow to Brixo
 
 ---
@@ -25,13 +25,11 @@ description: "Python Quickstart — Send Agent Traces to Brixo"
 Create a `.env` file or export environment variables:
 
 ```bash
-export BRIXO_API_KEY="<your_brixo_api_key>"
-export BRIXO_OTLP_ENDPOINT="https://api.brixo.example.com/v1/otlp"
-export OTEL_SERVICE_NAME="brixo-python-app"
-export OTEL_RESOURCE_ATTRIBUTES="deployment.environment=dev"
+export OTEL_EXPORTER_OTLP_TRACES_HEADERS="Brixo-Auth=Bearer <BRIXO_TOKEN>"
+export OTEL_EXPORTER_OTLP_ENDPOINT="https://otel.brixo.com:4318"
 ```
 
-Brixo accepts OTLP over HTTP. Authentication is via the `x-api-key` header.
+Brixo accepts OTLP over HTTP. Authentication is via the `Brixo-Auth` header.
 
 ---
 
@@ -39,149 +37,80 @@ Brixo accepts OTLP over HTTP. Authentication is via the `x-api-key` header.
 
 ```bash
 # Core OpenTelemetry
-pip install opentelemetry-sdk opentelemetry-exporter-otlp opentelemetry-instrumentation
+pip install opentelemetry-sdk opentelemetry-exporter-otlp
 
 # OpenLLMetry (Traceloop)
 pip install traceloop-sdk
 
 # OpenInference instrumentations
-pip install openinference-instrumentation-openai openinference-instrumentation-langchain openinference-instrumentation-llama-index
+pip install openinference-instrumentation-openai openinference-instrumentation-langchain
 ```
 
 ---
 
-## Step 2 — Configure OpenTelemetry to export to Brixo
-
-Create `telemetry.py`:
+## Step 2 — Create OTLP exporter to export traces to Brixo
 
 ```python
-import os
-from opentelemetry.sdk.resources import Resource
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
-from opentelemetry import trace
-
-BRIXO_API_KEY = os.environ["BRIXO_API_KEY"]
-BRIXO_OTLP_ENDPOINT = os.environ.get("BRIXO_OTLP_ENDPOINT", "https://api.brixo.example.com/v1/otlp")
-
-resource = Resource.create({
-    "service.name": os.environ.get("OTEL_SERVICE_NAME", "brixo-python-app"),
-    "deployment.environment": os.environ.get("OTEL_ENV", "dev"),
-})
-
-provider = TracerProvider(resource=resource)
-exporter = OTLPSpanExporter(
-    endpoint=BRIXO_OTLP_ENDPOINT,
-    headers={"x-api-key": BRIXO_API_KEY},
-)
-provider.add_span_processor(BatchSpanProcessor(exporter))
-trace.set_tracer_provider(provider)
+exporter = OTLPSpanExporter()
 ```
 
-This sets up a global tracer provider so both OpenLLMetry and OpenInference export to Brixo.
+The export will be created using the defined environment variables values.
 
 ---
 
-## Step 3 — Initialize OpenLLMetry (Traceloop)
+## Step 3 — Initialize instrumentation packages(OpenLLMetry and OpenInference)
 
 ```python
+from openinference.instrumentation.langchain import LangChainInstrumentor
 from traceloop.sdk import Traceloop
 
-Traceloop.init(app_name="brixo-demo")
-# Optional for faster local flushing:
-# Traceloop.init(app_name="brixo-demo", disable_batch=True)
-```
-
-OpenLLMetry automatically instruments common LLM frameworks and enriches spans with agent semantics.
-
----
-
-## Step 4 — Initialize OpenInference
-
-```python
-from openinference.instrumentation.openai import OpenAIInstrumentor
-from openinference.instrumentation.langchain import LangChainInstrumentor
-
-OpenAIInstrumentor().instrument()
 LangChainInstrumentor().instrument()
+Traceloop.init(app_name='brixo-demo', exporter=exporter)
 ```
 
-OpenInference emits OpenTelemetry-compatible spans, which are routed to Brixo via your OTLP exporter.
+OpenInference and OpenLLMetry automatically instruments common LLM frameworks and enriches spans with agent semantics. It is necessary to keep the same initialization sequence.
 
 ---
 
-## Step 5 — Run your app
+## Step 5 — Run the app inside a new trace span
 
-Example app:
-
-```python
-import os
-from dotenv import load_dotenv
-load_dotenv()
-
-import telemetry  # sets up OTEL + exporter
-import tracing_openllmetry   # Traceloop/OpenLLMetry
-import tracing_openinference # OpenInference instrumentations
-
-from openai import OpenAI
-
-client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
-response = client.chat.completions.create(
-    model="gpt-4o-mini",
-    messages=[{"role": "user", "content": "Tell me a joke about Brixo."}],
-)
-print(response.choices[0].message.content)
-```
-
-Run:
-
-```bash
-python app.py
-```
-
-You’ll see traces in Brixo from both OpenLLMetry and OpenInference.
-
-Brixo automatically normalizes and de-duplicates spans so you get the richest, cleanest view.
-
----
-
-## Advanced examples
-
-### LlamaIndex
-
-```bash
-pip install llama-index openinference-instrumentation-llama-index
-```
+After the configuration, start a new trace span for the agent run:
 
 ```python
-from openinference.instrumentation.llama_index import LlamaIndexInstrumentor
-LlamaIndexInstrumentor().instrument()
-```
+from my_lang_graph_agent import agent
+from opentelemetry import trace
 
-### CrewAI
+tracer = trace.get_tracer(__name__)
 
-```bash
-pip install crewai openinference-instrumentation-crewai
-```
-
-```python
-from openinference.instrumentation.crewai import CrewAIInstrumentor
-CrewAIInstrumentor().instrument()
+with tracer.start_as_current_span('Agent'):
+	messages = [HumanMessage(content="Add 3 and 4.")]
+	response = agent.invoke({"messages": messages})
 ```
 
 ---
 
-## Verify locally (optional)
+## Step 5.1 — Full example (single file)
 
-Test traces locally using Phoenix before sending to Brixo:
+```python
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from openinference.instrumentation.langchain import LangChainInstrumentor
+from traceloop.sdk import Traceloop
 
-```bash
-pip install arize-phoenix
-python -m phoenix.server.main serve
+exporter = OTLPSpanExporter()
+LangChainInstrumentor().instrument()
+Traceloop.init(app_name='brixo-demo', exporter=exporter)
+
+from my_lang_graph_agent import agent
+from opentelemetry import trace
+
+tracer = trace.get_tracer(__name__)
+with tracer.start_as_current_span('Agent'):
+	messages = [HumanMessage(content="Add 3 and 4.")]
+	response = agent.invoke({"messages": messages})
 ```
 
-Set `BRIXO_OTLP_ENDPOINT=http://localhost:6006/v1/traces` to verify spans.
+That’s it — your Python app is now sending rich, merged agent traces to **Brixo**.
 
 ---
 
@@ -198,15 +127,6 @@ Set `BRIXO_OTLP_ENDPOINT=http://localhost:6006/v1/traces` to verify spans.
 
 - Check `BRIXO_API_KEY` and endpoint
 - Ensure telemetry is initialized before other imports
-- Run with `OTEL_LOG_LEVEL=debug`
-
-**Duplicate spans:**
-
-- Disable duplicate instrumentations when layering frameworks
-
-**Slow flushes:**
-
-- Use `disable_batch=True` with Traceloop in development
 
 ---
 
@@ -225,49 +145,3 @@ No. Brixo supports direct OTLP/HTTP export.
 Anything OpenLLMetry or OpenInference supports: OpenAI, Anthropic, LangChain, LlamaIndex, CrewAI, AutoGen, Bedrock, etc.
 
 ---
-
-## Next steps
-
-- Add business tags like `brixo.outcome=booked_meeting`
-- Add LLM evaluations for MES/quality analytics
-- Explore the Brixo UI: **Traces → Sessions → Dashboards**
-
----
-
-## Full example (single file)
-
-```python
-import os
-from dotenv import load_dotenv
-load_dotenv()
-
-from opentelemetry.sdk.resources import Resource
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
-from opentelemetry import trace
-
-provider = TracerProvider(resource=Resource.create({"service.name": "brixo-quickstart"}))
-exporter = OTLPSpanExporter(
-    endpoint=os.environ.get("BRIXO_OTLP_ENDPOINT", "https://api.brixo.example.com/v1/otlp"),
-    headers={"x-api-key": os.environ["BRIXO_API_KEY"]},
-)
-provider.add_span_processor(BatchSpanProcessor(exporter))
-trace.set_tracer_provider(provider)
-
-from traceloop.sdk import Traceloop
-Traceloop.init(app_name="brixo-quickstart")
-
-from openinference.instrumentation.openai import OpenAIInstrumentor
-OpenAIInstrumentor().instrument()
-
-from openai import OpenAI
-client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
-response = client.chat.completions.create(
-    model="gpt-4o-mini",
-    messages=[{"role": "user", "content": "Summarize Brixo in one sentence."}],
-)
-print(response.choices[0].message.content)
-```
-
-That’s it — your Python app is now sending rich, merged agent traces to **Brixo**.
