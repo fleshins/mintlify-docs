@@ -22,7 +22,7 @@ description: "Python Quickstart — Send Agent Traces to Brixo"
 - Brixo account + API key
 - Internet access from your app to Brixo ingest (OTLP/HTTP)
 
-Create a `.env` file or export environment variables:
+Export environment variables:
 
 ```bash
 export OTEL_EXPORTER_OTLP_TRACES_HEADERS="Brixo-Auth=Bearer <BRIXO_TOKEN>"
@@ -51,7 +51,7 @@ pip install openinference-instrumentation-langchain
 ## Step 2 — Setup instrumentation
 
 ```python
-# Import you a
+# Import your agent code
 from my_lang_graph_agent import agent
 from opentelemetry import trace
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
