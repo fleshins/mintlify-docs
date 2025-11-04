@@ -26,7 +26,7 @@
               {
                 "group": "Python",
                 "pages": [
-                  "ingestion/python/langchain_and_langgraph"
+                  "ingestion/Python/langchain_and_langgraph"
                 ]
               },
               "ingestion/typescript",
