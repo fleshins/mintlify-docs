@@ -96,7 +96,7 @@ with tracer.start_as_current_span("Agent"):
     response = agent.invoke({"messages": messages})
 ```
 
-> ✅ **Tip:** Make sure to initialize instrumentation **before** any LangChain components (chains, tools, or agents) are imported or instantiated.
+> ✅ **Tip:** Make sure to initialize instrumentation **before** invoking your agent.
 
 That's it — your LangChain/LangGraph app is now sending rich, merged agent traces to **Brixo**.
 
