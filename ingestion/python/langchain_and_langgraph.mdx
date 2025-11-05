@@ -8,16 +8,25 @@ sidebarTitle: "Langchain/LangGraph"
 
 ---
 
-## TL;DR
+## **⚡️**TL;DR
 
-1. Install SDKs + OpenTelemetry
-2. Configure the Brixo OTLP endpoint and API key
-3. Initialize OpenInference and Traceloop (OpenLLMetry) instrumentation
-4. Run your app — traces flow to Brixo
+```
+# 1️⃣  Set env vars
+export OTEL_EXPORTER_OTLP_TRACES_HEADERS="Brixo-Auth=Bearer <BRIXO_API_KEY>"
+export OTEL_EXPORTER_OTLP_ENDPOINT="https://otel.brixo.com:4318"
+
+# 2️⃣  Install required SDKs
+pip install opentelemetry-sdk opentelemetry-exporter-otlp traceloop-sdk openinference-instrumentation-langchain
+
+# 3️⃣  Run your agent
+python your_agent.py
+```
+
+That’s it — your traces are flowing to **Brixo** ✅
 
 ---
 
-## Prerequisites
+## **🧩 **Prerequisites
 
 - Python 3.9+
 - Brixo account + API key
@@ -34,7 +43,7 @@ Brixo accepts OTLP over HTTP. Authentication is via the `Brixo-Auth` header.
 
 ---
 
-## Step 1 — Install dependencies
+## **🧱 **Step 1 — Install dependencies
 
 ```bash
 # Core OpenTelemetry
@@ -43,37 +52,44 @@ pip install opentelemetry-sdk opentelemetry-exporter-otlp
 # OpenLLMetry (Traceloop)
 pip install traceloop-sdk
 
-# OpenInference instrumentation
+# OpenInference instrumentation for LangChain
 pip install openinference-instrumentation-langchain
 ```
 
 ---
 
-## Step 2 — Setup instrumentation
+## **🧠 **Step 2 — Setup instrumentation
+
+Add the following instrumentation code **before** your agent is initialized or invoked.
 
 ```python
-# Import your agent code
-from my_lang_graph_agent import agent
+# your_agent.py
+
+# --- Add these imports at the top of your file ---
 from opentelemetry import trace
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from openinference.instrumentation.langchain import LangChainInstrumentor
 from traceloop.sdk import Traceloop
+from langchain.schema import HumanMessage
 
-# The export will be created using the endpoint and headers defined 
-# in the environment variables.
+# --- Initialize the exporter and instrumentation ---
 exporter = OTLPSpanExporter()
 
-# Initialize instrumentation packages(OpenLLMetry and OpenInference).
-# It is necessary to keep the same initialization sequence.
+# Important: Keep this order so spans are properly captured and merged.
 LangChainInstrumentor().instrument()
-Traceloop.init(app_name='brixo-demo', exporter=exporter)
+Traceloop.init(app_name="brixo-demo", exporter=exporter)
 
-# Start a new trace span and run the code to be instrumented inside it:
+# --- Your existing agent code below ---
+agent = ...  # however your agent is defined or imported
+
+# Wrap your agent call in a top-level span
 tracer = trace.get_tracer(__name__)
-with tracer.start_as_current_span('Agent'):
-	messages = [HumanMessage(content="Add 3 and 4.")]
-	response = agent.invoke({"messages": messages})
+with tracer.start_as_current_span("Agent"):
+    messages = [HumanMessage(content="Add 3 and 4.")]
+    response = agent.invoke({"messages": messages})
 ```
+
+> ✅ **Tip:** Make sure to initialize instrumentation **before** any LangChain components (chains, tools, or agents) are imported or instantiated.
 
 That's it — your LangChain/LangGraph app is now sending rich, merged agent traces to **Brixo**.
 
