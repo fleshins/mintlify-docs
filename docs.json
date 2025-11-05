@@ -93,12 +93,7 @@
         "label": "Support",
         "href": "mailto:hi@brixo.com"
       }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Sign in",
-      "href": "https://app.brixo.com"
-    }
+    ]
   },
   "contextual": {
     "options": [
