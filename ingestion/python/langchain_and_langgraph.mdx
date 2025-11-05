@@ -10,16 +10,23 @@ sidebarTitle: "Langchain/LangGraph"
 
 ## **⚡️**TL;DR
 
+### 1. Set env vars
+
 ```
-# 1️⃣  Set env vars
 export OTEL_EXPORTER_OTLP_TRACES_HEADERS="Brixo-Auth=Bearer <BRIXO_API_KEY>"
 export OTEL_EXPORTER_OTLP_ENDPOINT="https://otel.brixo.com:4318"
+```
 
-# 2️⃣  Install required SDKs
+### 2. Install required SDKs
+
+```
 pip install opentelemetry-sdk opentelemetry-exporter-otlp traceloop-sdk openinference-instrumentation-langchain
+```
 
-# 3️⃣  Run your agent
-python your_agent.py
+### 3. Run your agent
+
+```
+python my_agent.py
 ```
 
 That’s it — your traces are flowing to **Brixo** ✅
@@ -34,8 +41,8 @@ That’s it — your traces are flowing to **Brixo** ✅
 
 Export environment variables:
 
-```bash
-export OTEL_EXPORTER_OTLP_TRACES_HEADERS="Brixo-Auth=Bearer <BRIXO_TOKEN>"
+```
+export OTEL_EXPORTER_OTLP_TRACES_HEADERS="Brixo-Auth=Bearer <BRIXO_API_KEY>"
 export OTEL_EXPORTER_OTLP_ENDPOINT="https://otel.brixo.com:4318"
 ```
 
@@ -45,7 +52,7 @@ Brixo accepts OTLP over HTTP. Authentication is via the `Brixo-Auth` header.
 
 ## **🧱 **Step 1 — Install dependencies
 
-```bash
+```python
 # Core OpenTelemetry
 pip install opentelemetry-sdk opentelemetry-exporter-otlp
 
