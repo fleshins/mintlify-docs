@@ -63,19 +63,19 @@ from traceloop.sdk import Traceloop
 # in the environment variables.
 exporter = OTLPSpanExporter()
 
-#Initialize instrumentation packages(OpenLLMetry and OpenInference).
+# Initialize instrumentation packages(OpenLLMetry and OpenInference).
 # It is necessary to keep the same initialization sequence.
 LangChainInstrumentor().instrument()
 Traceloop.init(app_name='brixo-demo', exporter=exporter)
 
-# Start a new trace span for the agent run:
+# Start a new trace span and run the code to be instrumented inside it:
 tracer = trace.get_tracer(__name__)
 with tracer.start_as_current_span('Agent'):
 	messages = [HumanMessage(content="Add 3 and 4.")]
 	response = agent.invoke({"messages": messages})
 ```
 
-That's it — your Python app is now sending rich, merged agent traces to **Brixo**.
+That's it — your LangChain/LangGraph app is now sending rich, merged agent traces to **Brixo**.
 
 ---
 
