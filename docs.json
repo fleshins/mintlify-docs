@@ -42,8 +42,9 @@
           {
             "group": "Security & Privacy",
             "pages": [
+              "security/data_security_privacy_and_compliance",
               "security/redaction",
-              "security/data_security_privacy_and_compliance"
+              "security/policy"
             ]
           },
           {
