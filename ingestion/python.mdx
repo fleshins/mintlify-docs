@@ -19,7 +19,7 @@ description: "Python Quickstart — Send Agent Traces to Brixo"
 
 ## Prerequisites
 
-- Python 3.9+
+- Python 3.10+
 - Brixo account + API key
 
 ---
@@ -32,14 +32,14 @@ Create an account @ https://app.brixo.com/sign_up
 
 Generate an API key from the in-app instruction page and set the **BRIXO_API_KEY** environment variable to it:
 
-```python
+```bash
 export BRIXO_API_KEY=<your_api_key>
 ```
 
 ## Step 3 — Install the Brixo SDK
 
 ```bash
-$ pip install brixo
+pip install brixo
 ```
 
 ---
@@ -92,11 +92,12 @@ def handle_user_input(user_input: str):
 def handle_agent_response(response):
     """Extracts the final agent output and updates the trace."""
 
-    final_text = response["messages"][-1].content
+    final_text = response["messages"][-1]["content"]
 
     # --- Brixo context end ---
     # Explicitly close the context (currently a no‑op safety guard)
     Brixo.end_context(output=final_text)
+
 
 def main():
     # --- Brixo SDK initialization ---
@@ -110,6 +111,7 @@ def main():
         user_input = input("User: ")
         handle_user_input(user_input)
 
+
 if __name__ == "__main__":
     main()
 ```
@@ -122,62 +124,231 @@ python main.py
 
 ## Key Concepts
 
-### `Brixo.init(...)`
+### **Concepts at a glance**
 
-Initializes the SDK. Call **once** at application startup.
+- **Interaction boundary**: one user request -> one response
+- **Context lifecycle**: `begin_context` early, `update_context` for mid-flight, `end_context` to close
+- **Flush timing**: traces are exported when the interaction function returns
 
-Recommended arguments:
+## Initialization Attributes (Set Once)
 
-- `app_name`: Logical name for your application or agent
-- `environment`: e.g. `development`, `staging`, `production`
+Some attributes apply to the *application runtime* (not a single interaction). These are configured once via `Brixo.init(...)` and automatically apply to all interactions.
 
----
+### `environment` (**required**)
+
+Execution environment for this app/runtime.
+
+```python
+Brixo.init(
+    app_name="my-agent",
+    environment="production",
+)
+
+```
+
+Typical values:
+
+- `development`
+- `staging`
+- `production`
+
+> environment is not set via begin_context, update_context, or end_context.
+> 
+> 
+> It is configured once at startup and is attached to all traces automatically.
+> 
+
+## Interaction Boundaries
 
 ### `@Brixo.interaction(name)`
 
-Marks a single, bounded **user interaction**.
+Marks a single, bounded **user interaction** (one request → one response). Brixo uses this boundary to group spans/attributes into one trace and flush it when the function returns.
 
-Guidelines:
+```python
+@Brixo.interaction("Main Agent Execution")
+def handle_user_input(user_input: str):
+    ...
+```
 
-- Use one interaction per user request
-- The function must terminate (no infinite loops)
+- `name` (required): Descriptive interaction name shown in Brixo
+- Use **one interaction per user request**
+- The decorated function must **terminate** (no infinite loops)
 - Choose descriptive names — they improve trace readability
+
+## Context Attributes (Per Interaction)
+
+Brixo interactions support a common set of **context attributes** that describe *who* the interaction is for, *what* happened, and *what the outcome was*.
+
+These attributes can be set or updated at **any point during an interaction lifecycle** using:
+
+- `Brixo.begin_context(...)`
+- `Brixo.update_context(...)`
+- `Brixo.end_context(...)`
+
+> You do not need to provide all attributes up front.
+> 
+> 
+> A common pattern is to attach identifiers and input early, and attach derived data or outputs later.
+> 
+
+---
+
+### Supported Context Attributes
+
+**Required for every interaction:**
+
+- `user.id` and `user.name`
+- `account.id` and `account.name`
+- `session_id`
+- `input`
+- `output`
+
+> input is typically set in `Brixo.begin_context(...)`, and output is typically set in `Brixo.end_context(...)`.
+You may set them via `Brixo.update_context(...)` as long as they are present before the interaction finishes.
+> 
+
+### `account`
+
+Identifies the customer, tenant, or organization associated with the interaction.
+
+```python
+account = {
+    "id": "acme-123",
+    "name": "ACME, Inc."
+}
+```
+
+- `id` (required): Stable internal identifier
+- `name` (required): Human-readable display name
+
+---
+
+### `user`
+
+Identifies the end user interacting with the agent.
+
+```python
+user = {
+    "id": "user-42",
+    "name": "Jane Doe"
+}
+```
+
+- `id` (required): Stable user identifier
+- `name` (required): Display name
+
+---
+
+### `session_id`
+
+Logical identifier that groups multiple interactions into a session.
+
+```python
+session_id = "session-abc-123"
+```
+
+- Use the same `session_id` across multiple interactions to enable session-level analysis
+
+---
+
+### `input`
+
+Raw user input that initiated the interaction.
+
+```python
+input = "Reset my password"
+```
+
+- **Required** for every interaction
+- Typically set at the beginning of an interaction
+- Used for analytics, debugging, and replay
+
+---
+
+### `output`
+
+Final agent output for the interaction.
+
+```python
+output = "I've sent you a password reset link."
+```
+
+- **Required** for every interaction
+- Typically set via `Brixo.end_context(...)`
+- Represents the resolved response returned to the user
+
+---
+
+### `metadata`
+
+Arbitrary structured key-value data associated with the interaction.
+
+```python
+metadata = {
+    "channel": "web",
+    "plan": "enterprise",
+    "experiment": "agent-v2"
+}
+```
+
+- Useful for custom segmentation and filtering
+- Values must be JSON-serializable
 
 ---
 
 ### `Brixo.begin_context(...)`
 
-Attaches structured metadata to the current interaction trace.
+Starts an interaction context and attaches initial attributes.
 
-Required fields:
+Typical use cases:
 
-- `account`: Customer or account identifier
-- `user`: End‑user information
-- `session_id`: Logical session identifier
-- `environment`: e.g. `development`, `staging`, `production`
-- `input`: Raw user input
-- `metadata`: Arbitrary key‑value data
+- Attach `account`, `user`, `session_id`
+- Record raw user `input`
+
+```python
+Brixo.begin_context(
+    account={"id": "acme-123", "name": "ACME, Inc."},
+    user={"id": "42", "name": "Jane Doe"},
+    session_id="session-abc-123",
+    input=user_input,
+)
+```
 
 ---
 
 ### `Brixo.update_context(...)`
 
-Adds or updates attributes **after** the interaction has started and leaves the interaction context open.
+Adds or updates context attributes **while the interaction is in progress**.
 
 Typical use cases:
 
 - Derived metrics
-- Tool results or summaries
+- Tool results
+- Partial summaries
+- Intermediate state
+
+```python
+Brixo.update_context(
+    metadata={"tools_used": ["search", "calculator"]}
+)
+```
 
 ---
 
 ### `Brixo.end_context(...)`
 
-Adds or updates attributes **after** the interaction has started and then explicitly closes the interaction context.
+Adds or updates context attributes and **explicitly closes** the interaction.
 
 Typical use cases:
 
-- Final agent output
+- Attach final `output`
+- Add outcome-related metadata
+
+```python
+Brixo.end_context(
+    output=final_text
+)
+```
 
 ---
 
@@ -187,15 +358,15 @@ Typical use cases:
 - Keep interaction functions short and bounded
 - Use descriptive interaction names
 - Attach inputs early and outputs late
-- Initialize Brixo before importing or running instrumented code
+- Initialize Brixo early at startup; if you rely on auto-instrumentation, import those libraries after `Brixo.init(...)`
+- Use `update_context` freely — it does not end the interaction
+- Close every interaction so traces can be flushed and analyzed
 
----
-
-## Support
+## **Support**
 
 If you have questions or run into issues:
 
-- Check the Brixo [Live View](https://www.brixo.com/traces/live) for trace visibility
-- Reach out to the Brixo team at [hello@brixo.com](mailto:hello@brixo.com)
+- Check the Brixo [Live View](https://app.brixo.com/traces/live) for trace visibility
+- Reach out to the Brixo team at [hello@brixo.com](mailto:hello@brixo.com)
 
 Happy instrumenting 🚀
