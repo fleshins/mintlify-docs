@@ -22,12 +22,7 @@
           {
             "group": "Ingestion",
             "pages": [
-              {
-                "group": "Python",
-                "pages": [
-                  "ingestion/python"
-                ]
-              }
+              "ingestion/python"
             ]
           },
           {
