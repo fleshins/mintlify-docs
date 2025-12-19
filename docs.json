@@ -22,21 +22,12 @@
           {
             "group": "Ingestion",
             "pages": [
-              "ingestion/overview",
               {
                 "group": "Python",
                 "pages": [
-                  "ingestion/python/langchain_and_langgraph"
+                  "ingestion/python"
                 ]
-              },
-              "ingestion/typescript",
-              "ingestion/frameworks"
-            ]
-          },
-          {
-            "group": "HTTP APIs",
-            "pages": [
-              "http/openai-proxy"
+              }
             ]
           },
           {
@@ -45,31 +36,6 @@
               "security/data_security_privacy_and_compliance",
               "security/redaction",
               "security/privacy"
-            ]
-          },
-          {
-            "group": "Troubleshooting",
-            "pages": [
-              "troubleshooting"
-            ]
-          },
-          {
-            "group": "Reference",
-            "pages": [
-              "reference/env-vars",
-              "reference/span-schema",
-              "reference/changelog"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "API reference",
-        "groups": [
-          {
-            "group": "OpenAI Proxy",
-            "pages": [
-              "http/openai-proxy"
             ]
           }
         ]
@@ -93,7 +59,7 @@
     "links": [
       {
         "label": "Support",
-        "href": "mailto:hi@brixo.com"
+        "href": "mailto:hello@brixo.com"
       }
     ]
   },

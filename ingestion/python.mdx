@@ -3,16 +3,17 @@ title: "Python Quickstart — Send Agent Traces to Brixo"
 description: "Python Quickstart — Send Agent Traces to Brixo"
 ---
 
-**Goal:** In under 10 minutes, send rich agent traces from your Python app to **Brixo** using **both** OpenLLMetry (Traceloop) and OpenInference.
+**Goal:** In under 10 minutes, send rich agent traces from your Python app to **Brixo** and unlock customer analytics.
 
 ---
 
 ## TL;DR
 
-1. Install SDKs + OpenTelemetry
-2. Configure the Brixo OTLP endpoint and API key
-3. Initialize Traceloop (OpenLLMetry) and OpenInference
-4. Run your app — traces flow to Brixo
+1. Create an account @ https://app.brixo.com/sign_up
+1. Grab an API key and add it to your environment
+1. Install the Brixo SDK
+2. Instrument your agent application
+3. Watch traces appear in Brixo's Live View and confirm they look good
 
 ---
 
@@ -20,254 +21,181 @@ description: "Python Quickstart — Send Agent Traces to Brixo"
 
 - Python 3.9+
 - Brixo account + API key
-- Internet access from your app to Brixo ingest (OTLP/HTTP)
 
-Create a `.env` file or export environment variables:
+---
+
+## Step 1 — Create an account
+
+Create an account @ https://app.brixo.com/sign_up
+
+## Step 2 — Get an API key and add it to your environment
+
+Generate an API key from the in-app instruction page and set the **BRIXO_API_KEY** environment variable to it:
+
+```python
+export BRIXO_API_KEY=<your_api_key>
+```
+
+## Step 3 — Install the Brixo SDK
 
 ```bash
-export BRIXO_API_KEY="<your_brixo_api_key>"
-export BRIXO_OTLP_ENDPOINT="https://api.brixo.example.com/v1/otlp"
-export OTEL_SERVICE_NAME="brixo-python-app"
-export OTEL_RESOURCE_ATTRIBUTES="deployment.environment=dev"
-```
-
-Brixo accepts OTLP over HTTP. Authentication is via the `x-api-key` header.
-
----
-
-## Step 1 — Install dependencies
-
-```bash
-# Core OpenTelemetry
-pip install opentelemetry-sdk opentelemetry-exporter-otlp opentelemetry-instrumentation
-
-# OpenLLMetry (Traceloop)
-pip install traceloop-sdk
-
-# OpenInference instrumentations
-pip install openinference-instrumentation-langchain openinference-instrumentation-llama-index
+$ pip install brixo
 ```
 
 ---
 
-## Step 2 — Configure OpenTelemetry to export to Brixo
+## Step 4 — Instrument your agent application
 
-Create `telemetry.py`:
+The typical flow is:
+
+1. Initialize Brixo once at application startup
+2. Wrap each _user interaction_ with `@Brixo.interaction`
+3. Attach context (user, customer, session, input, output)
+4. Let the interaction finish so traces can be flushed
+
+## Example
+
+Below is a minimal but complete example that instruments a single agent interaction loop.
+
+Create a file called `main.py`:
 
 ```python
-import os
-from opentelemetry.sdk.resources import Resource
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
-from opentelemetry import trace
+# --- Brixo SDK import ---
+# Import the Brixo SDK so we can instrument and send interaction traces to Brixo.
+from brixo import Brixo
+from my_agent import agent
 
-BRIXO_API_KEY = os.environ["BRIXO_API_KEY"]
-BRIXO_OTLP_ENDPOINT = os.environ.get("BRIXO_OTLP_ENDPOINT", "https://api.brixo.example.com/v1/otlp")
+# --- Brixo interaction boundary ---
+# Mark ONE bounded user interaction (one request → one response) so Brixo can group
+# spans/attributes into a single trace and flush it when this function returns.
 
-resource = Resource.create({
-    "service.name": os.environ.get("OTEL_SERVICE_NAME", "brixo-python-app"),
-    "deployment.environment": os.environ.get("OTEL_ENV", "dev"),
-})
+@Brixo.interaction("Main Agent Execution")
+def handle_user_input(user_input: str):
 
-provider = TracerProvider(resource=resource)
-exporter = OTLPSpanExporter(
-    endpoint=BRIXO_OTLP_ENDPOINT,
-    headers={"x-api-key": BRIXO_API_KEY},
-)
-provider.add_span_processor(BatchSpanProcessor(exporter))
-trace.set_tracer_provider(provider)
+    # --- Brixo context start ---
+    # Attach contextual metadata to the current trace
+    Brixo.begin_context(
+        user={"id": "1", "name": "John Doe"},
+        account={"id": "1", "name": "ACME, Inc."},
+        session_id="session-123",
+        metadata={"foo": "bar"},
+        input=user_input,
+    )
+
+    response = agent.invoke(
+        {"messages": [{"role": "user", "content": user_input}]}
+    )
+
+    handle_agent_response(response)
+    
+    
+def handle_agent_response(response):
+    """Extracts the final agent output and updates the trace."""
+
+    final_text = response["messages"][-1].content
+
+    # --- Brixo context end ---
+    # Explicitly close the context (currently a no‑op safety guard)
+    Brixo.end_context(output=final_text)
+
+def main():
+    # --- Brixo SDK initialization ---
+    # Initialize once at startup, before any instrumented code runs.    
+    Brixo.init(
+        app_name="my-agent",
+        environment="production",
+    )
+
+    while True:
+        user_input = input("User: ")
+        handle_user_input(user_input)
+
+if __name__ == "__main__":
+    main()
 ```
 
-This sets up a global tracer provider so both OpenLLMetry and OpenInference export to Brixo.
+Run the example:
+
+```
+python main.py
+```
+
+## Key Concepts
+
+### `Brixo.init(...)`
+
+Initializes the SDK. Call **once** at application startup.
+
+Recommended arguments:
+
+- `app_name`: Logical name for your application or agent
+- `environment`: e.g. `development`, `staging`, `production`
 
 ---
 
-## Step 3 — Initialize OpenLLMetry (Traceloop)
+### `@Brixo.interaction(name)`
 
-```python
-from traceloop.sdk import Traceloop
+Marks a single, bounded **user interaction**.
 
-Traceloop.init(app_name="brixo-demo")
-# Optional for faster local flushing:
-# Traceloop.init(app_name="brixo-demo", disable_batch=True)
-```
+Guidelines:
 
-OpenLLMetry automatically instruments common LLM frameworks and enriches spans with agent semantics.
+- Use one interaction per user request
+- The function must terminate (no infinite loops)
+- Choose descriptive names — they improve trace readability
 
 ---
 
-## Step 4 — Initialize OpenInference
+### `Brixo.begin_context(...)`
 
-```python
-from openinference.instrumentation.openai import OpenAIInstrumentor
-from openinference.instrumentation.langchain import LangChainInstrumentor
+Attaches structured metadata to the current interaction trace.
 
-OpenAIInstrumentor().instrument()
-LangChainInstrumentor().instrument()
-```
+Required fields:
 
-OpenInference emits OpenTelemetry-compatible spans, which are routed to Brixo via your OTLP exporter.
-
----
-
-## Step 5 — Run your app
-
-Example app:
-
-```python
-import os
-from dotenv import load_dotenv
-load_dotenv()
-
-import telemetry  # sets up OTEL + exporter
-import tracing_openllmetry   # Traceloop/OpenLLMetry
-import tracing_openinference # OpenInference instrumentations
-
-from openai import OpenAI
-
-client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
-response = client.chat.completions.create(
-    model="gpt-4o-mini",
-    messages=[{"role": "user", "content": "Tell me a joke about Brixo."}],
-)
-print(response.choices[0].message.content)
-```
-
-Run:
-
-```bash
-python app.py
-```
-
-You’ll see traces in Brixo from both OpenLLMetry and OpenInference.
-
-Brixo automatically normalizes and de-duplicates spans so you get the richest, cleanest view.
+- `account`: Customer or account identifier
+- `user`: End‑user information
+- `session_id`: Logical session identifier
+- `environment`: e.g. `development`, `staging`, `production`
+- `input`: Raw user input
+- `metadata`: Arbitrary key‑value data
 
 ---
 
-## Advanced examples
+### `Brixo.update_context(...)`
 
-### LlamaIndex
+Adds or updates attributes **after** the interaction has started and leaves the interaction context open.
 
-```bash
-pip install llama-index openinference-instrumentation-llama-index
-```
+Typical use cases:
 
-```python
-from openinference.instrumentation.llama_index import LlamaIndexInstrumentor
-LlamaIndexInstrumentor().instrument()
-```
-
-### CrewAI
-
-```bash
-pip install crewai openinference-instrumentation-crewai
-```
-
-```python
-from openinference.instrumentation.crewai import CrewAIInstrumentor
-CrewAIInstrumentor().instrument()
-```
+- Derived metrics
+- Tool results or summaries
 
 ---
 
-## Verify locally (optional)
+### `Brixo.end_context(...)`
 
-Test traces locally using Phoenix before sending to Brixo:
+Adds or updates attributes **after** the interaction has started and then explicitly closes the interaction context.
 
-```bash
-pip install arize-phoenix
-python -m phoenix.server.main serve
-```
+Typical use cases:
 
-Set `BRIXO_OTLP_ENDPOINT=http://localhost:6006/v1/traces` to verify spans.
+- Final agent output
 
 ---
 
-## Sampling and PII
+## Best Practices
 
-- **Sampling:** Use `ParentBased(TraceIdRatioBased(0.2))` to manage span volume.
-- **PII:** Redact sensitive data before export. Both OpenLLMetry and OpenInference support custom attribute filtering.
-
----
-
-## Troubleshooting
-
-**No traces:**
-
-- Check `BRIXO_API_KEY` and endpoint
-- Ensure telemetry is initialized before other imports
-- Run with `OTEL_LOG_LEVEL=debug`
-
-**Duplicate spans:**
-
-- Disable duplicate instrumentations when layering frameworks
-
-**Slow flushes:**
-
-- Use `disable_batch=True` with Traceloop in development
+- **One interaction = one user request**
+- Keep interaction functions short and bounded
+- Use descriptive interaction names
+- Attach inputs early and outputs late
+- Initialize Brixo before importing or running instrumented code
 
 ---
 
-## FAQ
+## Support
 
-### Why both OpenLLMetry and OpenInference?
+If you have questions or run into issues:
 
-They capture different layers of context — OpenLLMetry focuses on LLM/agent orchestration, OpenInference on tool and framework spans. Brixo merges and normalizes both for full insight.
+- Check the Brixo [Live View](https://www.brixo.com/traces/live) for trace visibility
+- Reach out to the Brixo team at [hello@brixo.com](mailto:hello@brixo.com)
 
-### Do I need a Collector?
-
-No. Brixo supports direct OTLP/HTTP export.
-
-### Which frameworks are supported?
-
-Anything OpenLLMetry or OpenInference supports: OpenAI, Anthropic, LangChain, LlamaIndex, CrewAI, AutoGen, Bedrock, etc.
-
----
-
-## Next steps
-
-- Add business tags like `brixo.outcome=booked_meeting`
-- Add LLM evaluations for MES/quality analytics
-- Explore the Brixo UI: **Traces → Sessions → Dashboards**
-
----
-
-## Full example (single file)
-
-```python
-import os
-from dotenv import load_dotenv
-load_dotenv()
-
-from opentelemetry.sdk.resources import Resource
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
-from opentelemetry import trace
-
-provider = TracerProvider(resource=Resource.create({"service.name": "brixo-quickstart"}))
-exporter = OTLPSpanExporter(
-    endpoint=os.environ.get("BRIXO_OTLP_ENDPOINT", "https://api.brixo.example.com/v1/otlp"),
-    headers={"x-api-key": os.environ["BRIXO_API_KEY"]},
-)
-provider.add_span_processor(BatchSpanProcessor(exporter))
-trace.set_tracer_provider(provider)
-
-from traceloop.sdk import Traceloop
-Traceloop.init(app_name="brixo-quickstart")
-
-from openinference.instrumentation.openai import OpenAIInstrumentor
-OpenAIInstrumentor().instrument()
-
-from openai import OpenAI
-client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
-response = client.chat.completions.create(
-    model="gpt-4o-mini",
-    messages=[{"role": "user", "content": "Summarize Brixo in one sentence."}],
-)
-print(response.choices[0].message.content)
-```
-
-That’s it — your Python app is now sending rich, merged agent traces to **Brixo**.
+Happy instrumenting 🚀
