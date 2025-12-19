@@ -122,17 +122,40 @@ Run the example:
 python main.py
 ```
 
-## Key Concepts
+# Key Concepts
 
-### **Concepts at a glance**
+## Initialization
 
-- **Interaction boundary**: one user request -> one response
-- **Context lifecycle**: `begin_context` early, `update_context` for mid-flight, `end_context` to close
-- **Flush timing**: traces are exported when the interaction function returns
+### `Brixo.init(...)`
 
-## Initialization Attributes (Set Once)
+Initializes the Brixo SDK **once at application startup**. This sets runtime-wide settings (like `app_name` and `environment`) and configures the SDK so that any subsequent instrumented code can emit traces.
+
+**When to call it:**
+
+- Call **exactly once**, as early as possible in your app startup.
+- Call it **before** any instrumented code runs (before your first `@Brixo.interaction` executes).
+
+```python
+Brixo.init(
+    app_name="my-agent",
+    environment="production",
+)
+```
+
+## Initialization Attributes
 
 Some attributes apply to the *application runtime* (not a single interaction). These are configured once via `Brixo.init(...)` and automatically apply to all interactions.
+
+### app_name (**required**)
+
+Name of the agent application
+
+```jsx
+Brixo.init(
+    app_name="my-agent",
+    environment="production",
+)
+```
 
 ### `environment` (**required**)
 
@@ -143,7 +166,6 @@ Brixo.init(
     app_name="my-agent",
     environment="production",
 )
-
 ```
 
 Typical values:
@@ -151,12 +173,6 @@ Typical values:
 - `development`
 - `staging`
 - `production`
-
-> environment is not set via begin_context, update_context, or end_context.
-> 
-> 
-> It is configured once at startup and is attached to all traces automatically.
-> 
 
 ## Interaction Boundaries
 
@@ -174,6 +190,62 @@ def handle_user_input(user_input: str):
 - Use **one interaction per user request**
 - The decorated function must **terminate** (no infinite loops)
 - Choose descriptive names — they improve trace readability
+
+---
+
+### `Brixo.begin_context(...)`
+
+Starts an interaction context and attaches initial attributes.
+
+Typical use cases:
+
+- Attach `account`, `user`, `session_id`
+- Record raw user `input`
+
+```python
+Brixo.begin_context(
+    account={"id": "acme-123", "name": "ACME, Inc."},
+    user={"id": "42", "name": "Jane Doe"},
+    session_id="session-abc-123",
+    input=user_input,
+)
+```
+
+---
+
+### `Brixo.update_context(...)`
+
+Adds or updates context attributes **while the interaction is in progress**.
+
+Typical use cases:
+
+- Derived metrics
+- Tool results
+- Partial summaries
+- Intermediate state
+
+```python
+Brixo.update_context(
+    metadata={"tools_used": ["search", "calculator"]}
+)
+```
+
+---
+
+### `Brixo.end_context(...)`
+
+Adds or updates context attributes and **explicitly closes** the interaction.
+
+Typical use cases:
+
+- Attach final `output`
+- Add outcome-related metadata
+
+```python
+Brixo.end_context(
+    output=final_text
+)
+```
 
 ## Context Attributes (Per Interaction)
 
@@ -293,62 +365,6 @@ metadata = {
 
 - Useful for custom segmentation and filtering
 - Values must be JSON-serializable
-
----
-
-### `Brixo.begin_context(...)`
-
-Starts an interaction context and attaches initial attributes.
-
-Typical use cases:
-
-- Attach `account`, `user`, `session_id`
-- Record raw user `input`
-
-```python
-Brixo.begin_context(
-    account={"id": "acme-123", "name": "ACME, Inc."},
-    user={"id": "42", "name": "Jane Doe"},
-    session_id="session-abc-123",
-    input=user_input,
-)
-```
-
----
-
-### `Brixo.update_context(...)`
-
-Adds or updates context attributes **while the interaction is in progress**.
-
-Typical use cases:
-
-- Derived metrics
-- Tool results
-- Partial summaries
-- Intermediate state
-
-```python
-Brixo.update_context(
-    metadata={"tools_used": ["search", "calculator"]}
-)
-```
-
----
-
-### `Brixo.end_context(...)`
-
-Adds or updates context attributes and **explicitly closes** the interaction.
-
-Typical use cases:
-
-- Attach final `output`
-- Add outcome-related metadata
-
-```python
-Brixo.end_context(
-    output=final_text
-)
-```
 
 ---
 
