@@ -16,12 +16,6 @@
           {
             "group": "Getting started",
             "pages": [
-              "quickstart"
-            ]
-          },
-          {
-            "group": "Ingestion",
-            "pages": [
               "ingestion/python"
             ]
           },
