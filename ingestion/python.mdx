@@ -50,8 +50,29 @@ The typical flow is:
 
 1. Initialize Brixo once at application startup
 2. Wrap each _user interaction_ with `@Brixo.interaction`
-3. Attach context (user, customer, session, input, output)
+3. Attach context (user, account, session, input, output)
 4. Let the interaction finish so traces can be flushed
+
+---
+
+### About `user.id`
+
+Brixo is designed to use `user.id` as a stable identifier from your system of record—most commonly a CRM such as Salesforce.
+
+Using a UID that can be mapped to a CRM record enables Brixo to:
+
+- Automatically enrich interactions with CRM metadata when Brixo's CRM connector is enabled
+- Power segmentation by plan, industry, territory, role, lifecycle stage, and more
+- Keep analytics consistent across agents, channels, and tools
+- Avoid duplicating or syncing customer data manually
+
+In most agent runtimes, the most reliable identifier available is the **user’s email address**.
+
+Brixo recommends using:
+
+- `user.id`: the user’s **email**
+
+If you later connect your CRM via Brixo's connector, Brixo can enrich your interactions with customer metadata based on these identifiers—without changing your instrumentation. 🙌
 
 ## Example
 
@@ -75,8 +96,14 @@ def handle_user_input(user_input: str):
     # --- Brixo context start ---
     # Attach contextual metadata to the current trace
     Brixo.begin_context(
-        user={"id": "1", "name": "John Doe"},
-        account={"id": "1", "name": "ACME, Inc."},
+        user={
+          "id": "jane.doe@acme.com", # Stable user identifier (e.g. email)
+          "name": "Jane Doe"
+        }, 
+        account={
+          "id": "org_7f3a2c91", # Stable account/tenant identifier
+          "name": "ACME, Inc."
+        },
         session_id="session-123",
         metadata={"foo": "bar"},
         input=user_input,
@@ -144,7 +171,7 @@ Brixo.init(
 
 ## Initialization Attributes
 
-Some attributes apply to the *application runtime* (not a single interaction). These are configured once via `Brixo.init(...)` and automatically apply to all interactions.
+Some attributes apply to the _application runtime_ (not a single interaction). These are configured once via `Brixo.init(...)` and automatically apply to all interactions.
 
 ### `app_name` (**required**)
 
@@ -199,13 +226,19 @@ Starts an interaction context and attaches initial attributes.
 
 Typical use cases:
 
-- Attach `account`, `user`, `session_id`
+- Attach `user`, `account`, `session_id`
 - Record raw user `input`
 
 ```python
 Brixo.begin_context(
-    account={"id": "acme-123", "name": "ACME, Inc."},
-    user={"id": "42", "name": "Jane Doe"},
+    user={
+		"id": "jane.doe@acme.com", # Stable user identifier (e.g. email)
+		"name": "Jane Doe"
+	},
+    account={
+		"id": "org_7f3a2c91", # Stable account/tenant identifier
+		"name": "ACME, Inc."
+	},
     session_id="session-abc-123",
     input=user_input,
 )
@@ -249,7 +282,7 @@ Brixo.end_context(
 
 ## Context Attributes (Per Interaction)
 
-Brixo interactions support a common set of **context attributes** that describe *who* the interaction is for, *what* happened, and *what the outcome was*.
+Brixo interactions support a common set of **context attributes** that describe _who_ the interaction is for, _what_ happened, and _what the outcome was_.
 
 These attributes can be set or updated at **any point during an interaction lifecycle** using:
 
@@ -258,10 +291,8 @@ These attributes can be set or updated at **any point during an interaction life
 - `Brixo.end_context(...)`
 
 > You do not need to provide all attributes up front.
-> 
-> 
+>
 > A common pattern is to attach identifiers and input early, and attach derived data or outputs later.
-> 
 
 ---
 
@@ -275,25 +306,7 @@ These attributes can be set or updated at **any point during an interaction life
 - `input`
 - `output`
 
-> input is typically set in `Brixo.begin_context(...)`, and output is typically set in `Brixo.end_context(...)`.
-You may set them via `Brixo.update_context(...)` as long as they are present before the interaction finishes.
-> 
-
-### `account`
-
-Identifies the customer, tenant, or organization associated with the interaction.
-
-```python
-account = {
-    "id": "acme-123",
-    "name": "ACME, Inc."
-}
-```
-
-- `id` (required): Stable internal identifier
-- `name` (required): Human-readable display name
-
----
+> input is typically set in `Brixo.begin_context(...)`, and output is typically set in `Brixo.end_context(...)`. You may set them via `Brixo.update_context(...)` as long as they are present before the interaction finishes.
 
 ### `user`
 
@@ -301,13 +314,31 @@ Identifies the end user interacting with the agent.
 
 ```python
 user = {
-    "id": "user-42",
+    "id": "jane.doe@acme.com",
     "name": "Jane Doe"
 }
 ```
 
-- `id` (required): Stable user identifier
+- `id` (required): Stable internal identifier for the user 
+
+  Typically an email address, which can be mapped to a CRM record (e.g. Salesforce) when a connector is enabled.
 - `name` (required): Display name
+
+---
+
+### `account`
+
+Identifies the customer, tenant, or organization associated with the interaction.
+
+```python
+account = {
+    "id": "org_7f3a2c91",
+    "name": "ACME, Inc."
+}
+```
+
+- `id` (required): Stable internal identifier for the account or customer
+- `name` (required): Human-readable display name
 
 ---
 
