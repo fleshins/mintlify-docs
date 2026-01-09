@@ -1,16 +1,142 @@
 ---
-title: "Brixo Agent Analytics"
-description: "Brixo turns your agent telemetry into explainable timelines, cost/latency insights, and outcome dashboards that everyone can use to understand and improve agent behavior."
+title: "Welcome to Brixo"
+description: "Brixo transforms AI agent conversations into business-ready insights about user intent, experience, and outcomes."
 ---
 
-## Why instrument with Brixo?
-- **Frictionless integration**: send raw OTEL spans or point your OpenAI calls to our proxy.
-- **Readable step timelines**: we infer steps automatically; optionally add semantic spans via Traceloop/OpenLLMetry.
-- **Business‑grade analytics**: tasks, steps, outcomes, sentiment, cost, latency and more. Check out our [Demo Agent Analytics Dashboard](https://www.brixo.com/productdemo).
+## What is Brixo?
 
-## Choose your path
-1. **Zero‑code (HTTP)** · Use the **OpenAI Proxy** for files/batches/requests. → [/http/openai-proxy](/http/openai-proxy)
-2. **Auto‑instrument (OTEL)** · Keep your SDK; emit OpenAI/HTTP/tool spans. → [/ingestion/overview](/ingestion/overview)
-3. **Optional semantic steps** · Add Traceloop/OpenLLMetry to label workflows/tasks. → [/ingestion/frameworks](/ingestion/frameworks)
+Brixo helps Product, Support, Sales, and Executive teams understand what’s really happening inside AI-powered conversations.
 
-> You can combine 2 + 3: raw spans for depth, semantic steps for a readable story.
+Brixo answers three fundamental questions:
+
+1. **Why users engage with AI agents** — their goals and intent
+2. **How users experience those interactions** — sentiment, effort, friction
+3. **What outcomes those interactions produce** — resolution, containment, deflection, CSAT
+
+Brixo bridges the gap between **engineering telemetry** and **business outcomes** by transforming raw conversational data into structured signals and KPIs teams can act on.
+
+> Brixo is not an engineering observability tool.\
+> We use telemetry as an input to measure **human experience and business impact**.
+
+---
+
+## What Brixo Measures
+
+Brixo analyzes conversations using two layers:
+
+### Signals (what happened)
+
+- User Goals (e.g. _Reset Password_, _Cancel Subscription_)
+- Conversation Topics (e.g. _Billing_, _Technical Support_)
+- User Sentiment
+- Conversational Events (loops, escalations, abandonments, wins)
+
+### Metrics (why it matters)
+
+- Resolution Rate
+- First Contact Resolution (FCR)
+- Effort Score
+- CSAT / Health
+- Containment / Automation Success
+- Deflection Rate
+- Average Handle Time (AHT)
+
+These metrics map directly to executive dashboards, operational reporting, and ROI analysis.
+
+---
+
+## Choose Your Integration Path
+
+Brixo supports **two first-class ways** to send conversation data.\
+Both are valid — choose based on how your system is built today.
+
+---
+
+## Path 1 — Use the Brixo SDK (Explicit Conversation Instrumentation)
+
+Best for teams who want **maximum accuracy and control** over how conversations are represented.
+
+With the Brixo SDK, you explicitly define:
+
+- Interaction boundaries (one user request → one response)
+- User, account, and session identity
+- User-visible input and final agent output
+
+This guarantees that Brixo sees the conversation exactly as the user experienced it.
+
+**Recommended if:**
+
+- You want precise resolution, effort, and health metrics from day one
+- You control the agent runtime
+- You want minimal inference and maximum correctness
+
+→ **Get started:** `/quickstart/python`
+
+---
+
+## Path 2 — Use Your Existing OpenTelemetry (OTLP) Integration
+
+Best for teams who already emit OpenTelemetry traces and want to **get started quickly**.
+
+Brixo can ingest traces directly via **OTLP** (HTTP or gRPC).\
+You can stream your existing traces to Brixo without changing your observability stack.
+
+This path supports **progressive enrichment**:
+
+- Start by sending what you already emit
+- Layer in lightweight context over time to unlock deeper analytics
+
+**Recommended if:**
+
+- You already use OpenTelemetry (e.g. Pydantic AI, framework auto-instrumentation)
+- You want minimal upfront integration work
+- You plan to evolve instrumentation incrementally
+
+→ **Get started:** `/quickstart/otlp`
+
+> OTLP is the transport.\
+> Conversation Analytics depends on whether traces reflect **complete user interactions**.
+
+---
+
+## Progressive Enrichment (Applies to Both Paths)
+
+You don’t need perfect instrumentation on day one.
+
+A common progression:
+
+1. Send existing data (SDK or OTLP)
+2. Validate interaction boundaries
+3. Add user/session context
+4. Add explicit user-visible input/output
+5. Unlock full experience and outcome analytics
+
+Brixo will guide you on the **smallest possible additions** needed to unlock more value.
+
+---
+
+## Which Path Should I Choose?
+
+| If you want…                                  | Choose…          |
+| --------------------------------------------- | ---------------- |
+| Fastest start with existing telemetry         | OTLP Integration |
+| Guaranteed accuracy for conversation metrics  | Brixo SDK        |
+| No changes to your observability stack        | OTLP Integration |
+| Explicit control over conversation boundaries | Brixo SDK        |
+
+You can also **combine both** — many teams start with OTLP and later add lightweight SDK instrumentation for richer context.
+
+---
+
+## Next Steps
+
+- **Using OpenTelemetry?** → `/quickstart/otlp`
+- **Instrumenting an agent directly?** → `/quickstart/python`
+- **Questions?** → [hello@brixo.com](mailto:hello@brixo.com)
+
+---
+
+### Key Takeaway
+
+**Brixo measures conversations — not just traces.**\
+Choose the integration path that fits your system today, and evolve from there.
