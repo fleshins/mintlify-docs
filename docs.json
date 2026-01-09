@@ -16,7 +16,8 @@
           {
             "group": "Getting started",
             "pages": [
-              "ingestion/python"
+              "ingestion/python",
+              "ingestion/otlp"
             ]
           },
           {
