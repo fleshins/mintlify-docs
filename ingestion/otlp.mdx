@@ -1,0 +1,220 @@
+---
+title: "OTLP Quickstart — Send OpenTelemetry Traces to Brixo"
+description: "Stream existing OpenTelemetry traces to Brixo via OTLP, then progressively enrich them to unlock Conversation Analytics."
+---
+
+## Goal
+
+Start sending OpenTelemetry traces to Brixo via **OTLP** in minutes, then progressively enrich them to unlock **Conversation Analytics** (user goals, sentiment, effort, resolution, health, containment, deflection).
+
+---
+
+## TL;DR
+
+- ✅ Brixo accepts traces via **OTLP (HTTP or gRPC)**
+- ✅ You can stream your **existing traces** directly to Brixo (no re-instrumentation required to start)
+- ✅ You can keep Honeycomb (or any other backend) and **dual-export** traces to both destinations
+- ⚠️ To compute full conversation analytics (resolution, effort, health, etc.), traces must include (or be enriched with) enough context to represent **user interactions** as the user experienced them
+
+---
+
+## What OTLP Enables in Brixo
+
+OTLP is the **transport layer**. It gets traces into Brixo.
+
+Brixo Conversation Analytics focuses on:
+
+1. **Why users engage** (goals / intent)
+2. **How it felt** (sentiment, friction, effort)
+3. **What happened** (resolution, CSAT, containment, deflection)
+
+To unlock accurate experience/outcome analytics, Brixo needs traces to map to **bounded user interactions** and, ideally, include user-visible input/output and identity context. This guide shows how to start with OTLP immediately and enrich over time.
+
+---
+
+## Prerequisites
+
+- You already emit OpenTelemetry traces (framework instrumentation is fine)
+- A Brixo account + API key
+
+---
+
+## Step 1 — Get your Brixo OTLP endpoint and API key
+
+In Brixo:
+
+1. Generate an API key
+2. Copy your OTLP endpoint (HTTP or gRPC)
+
+You’ll use:
+
+- `BRIXO_API_KEY`
+- `BRIXO_OTLP_ENDPOINT` (HTTP or gRPC endpoint)
+
+> If you’re unsure which endpoint to use, start with OTLP/HTTP — it’s usually easiest to test locally.
+
+---
+
+## Step 2 — Send traces to Brixo
+
+You have two common options:
+
+- **Option A:** Export directly from your app/runtime (fastest)
+- **Option B:** Export via an OpenTelemetry Collector (recommended for production and dual-export)
+
+---
+
+### Option A — Direct OTLP export from your application
+
+Set environment variables:
+
+```bash
+export OTEL_TRACES_EXPORTER=otlp
+
+# Use your Brixo OTLP endpoint (HTTP or gRPC)
+export OTEL_EXPORTER_OTLP_ENDPOINT="<BRIXO_OTLP_ENDPOINT>"
+
+# Pass your Brixo API key via OTLP headers
+export OTEL_EXPORTER_OTLP_HEADERS="authorization=Bearer <BRIXO_API_KEY>"
+```
+
+Restart your application after setting these values.
+
+> Notes:
+>
+> - Some runtimes expect OTLP/HTTP endpoints like \`https://...\` while others use OTLP/gRPC endpoints like \`host:4317\`.
+> - If your runtime supports both, OTLP/HTTP is often easiest to validate first.
+
+---
+
+### Option B — Dual-export via OpenTelemetry Collector (recommended)
+
+If you already export to a backend like Honeycomb, the Collector is the cleanest way to add Brixo without changing your application.
+
+Example Collector config (illustrative):
+
+```yaml
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+
+exporters:
+  otlp/brixo:
+    endpoint: "<BRIXO_OTLP_ENDPOINT>"
+    headers:
+      authorization: "Bearer <BRIXO_API_KEY>"
+
+  # Example: keep your existing exporter too (Honeycomb, Datadog, etc.)
+  otlp/other:
+    endpoint: "<YOUR_EXISTING_OTLP_ENDPOINT>"
+    headers:
+      x-honeycomb-team: "<HONEYCOMB_API_KEY>"
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [otlp/other, otlp/brixo]
+```
+
+This pattern lets you keep your current observability setup unchanged while also streaming traces to Brixo.
+
+---
+
+## Step 3 — Verify ingestion in Brixo
+
+Once you’ve enabled exporting:
+
+1. Open **Brixo → Live View**
+2. Confirm traces are appearing from your service
+
+If you don’t see traces:
+
+- Verify endpoint + headers
+- Confirm your app is emitting traces at all
+- Confirm your exporter/collector is running and reachable
+
+---
+
+## What you can do with OTLP-only (and what you can’t)
+
+OTLP-only is a great starting point, but it’s important to set expectations.
+
+### ✅ What OTLP-only can provide
+
+- Reliable ingestion of your existing traces
+- A bounded _execution view_ of what happened inside a request/trace
+- A starting point for conversation analytics when each trace maps cleanly to a single user interaction
+
+### ⚠️ What OTLP-only often lacks
+
+Framework-level GenAI instrumentation often captures model execution details, but may not reliably encode:
+
+- A stable **interaction boundary** (“one user request → one response”)
+- The **raw user message** (vs. model-facing prompt)
+- The **final user-visible response** (vs. intermediate outputs)
+- Durable **user/account identity**
+- A **session/conversation ID** to stitch multiple interactions together
+
+Brixo can ingest OTLP-only data immediately, but accurate experience/outcome analytics improves as you add lightweight context.
+
+---
+
+## Recommended context to unlock Conversation Analytics
+
+To compute metrics like **Resolution Rate, Effort Score, Health, Containment, Deflection**, Brixo needs traces to represent user interactions and identity.
+
+### Minimal recommended context (best-effort)
+
+| Context                   | Example                              | Why it matters                             |
+| ------------------------- | ------------------------------------ | ------------------------------------------ |
+| Interaction boundary      | one request/trace = one interaction  | groups activity into one user-visible unit |
+| User identifier           | user id or email on root span        | enables segmentation + user-level analysis |
+| Session / conversation id | \`session_id\` / \`conversation_id\` | enables multi-interaction stitching        |
+| User-visible input        | first user message                   | needed to detect goals/topics reliably     |
+| User-visible output       | final response shown to user         | needed for outcome metrics                 |
+
+> Many teams already include user/session identifiers on the top-level HTTP request span (as your customer described). That’s a great starting point.
+
+---
+
+## Progressive enrichment (recommended rollout)
+
+You don’t need to do everything on day one.
+
+A common rollout looks like:
+
+1. **Start streaming OTLP to Brixo**\
+   Validate ingestion and verify that request-level traces map cleanly to user interactions.
+2. **Add lightweight attributes**\
+   Add user IDs and (optionally) session/conversation IDs to your top-level span.
+3. **Add explicit user-visible input/output**\
+   If framework instrumentation doesn’t capture what the user actually saw, add small hooks to attach:
+   - initial user message
+   - final user-visible response
+4. **Optional: use the Brixo SDK for guaranteed correctness**\
+   If you want the cleanest interaction boundaries and user-visible IO capture with minimal guesswork, use the Brixo SDK.
+
+---
+
+## Common patterns that map well
+
+- **One HTTP request or SSE stream = one user interaction**\
+  → treat the request-level trace as the interaction boundary.
+- **User ID on the top-level HTTP span**\
+  → enables user-level analytics quickly.
+- **GenAI spans are children of the request span**\
+  → keeps execution context nicely contained.
+
+---
+
+## Support
+
+If you run into issues:
+
+- Check **Brixo → Live View** to confirm ingestion
+- Email [**hello@brixo.com**](mailto:hello@brixo.com) with your service name and approximate timestamp of a test request
+
+Happy instrumenting 🚀
