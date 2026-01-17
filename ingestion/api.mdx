@@ -3,7 +3,7 @@ title: "Brixo Conversation Analytics — Quickstart"
 description: "Brixo transforms raw AI conversations into business-ready insights — user goals, topics, friction, sentiment, and resolution outcomes — without requiring heavy agent instrumentation or observability pipelines."
 ---
 
-**Goal:** In under 10 minutes, send customer \<> agent conversations from your app to **Brixo** and unlock rich customer analytics.
+**Goal:** In under 10 minutes, send customer \<\> agent conversations from your app to **Brixo** and unlock rich customer analytics.
 
 ---
 
@@ -13,7 +13,7 @@ description: "Brixo transforms raw AI conversations into business-ready insights
 1. Grab an API key and add it to your environment
 1. Install the Brixo SDK
 2. Add a few lines of code
-3. Watch customer \<> agent conversations appear in Brixo's Live View and confirm they look good
+3. Watch customer \<\> agent conversations appear in Brixo's Live View and confirm they look good
 
 ---
 
@@ -50,18 +50,18 @@ If your agent is not written in Python, see the **Conversation Capture HTTP API*
 
 With Brixo, you only need to send:
 
-- **Human ↔ agent conversation turns**
+- **Customer ↔ agent conversation turns**
 - **environment** (**required**) — e.g. `production`, `staging`
 - **user** (**required**) — identifies the application user
-- **account** (**required**) — identifies the customer account (CRM join key)
+- **account** (**required**) — identifies the customer account 
 
 Optional data can be added to unlock richer analytics:
 
-- **attributes** — user or account-level context
+- **attributes** — user or account-level attributes
 - **metadata** — message-level annotations (cost, latency, streaming, etc.)
 
-Brixo focuses on **conversation analytics**, not agent observability.\
-You do **not** need to send spans, traces, tool calls, or internal agent telemetry.
+> Brixo focuses on **conversation analytics**, not agent observability.\
+> You do **not** need to send spans, traces, tool calls, or internal agent telemetry.
 
 ---
 
