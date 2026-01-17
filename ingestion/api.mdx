@@ -3,7 +3,40 @@ title: "Brixo Conversation Analytics — Quickstart"
 description: "Brixo transforms raw AI conversations into business-ready insights — user goals, topics, friction, sentiment, and resolution outcomes — without requiring heavy agent instrumentation or observability pipelines."
 ---
 
-## 🚀 Install the Brixo Python SDK
+**Goal:** In under 10 minutes, send rich agent traces from your Python app to **Brixo** and unlock customer analytics.
+
+---
+
+## TL;DR
+
+1. Create an account @ https://app.brixo.com/sign_up
+1. Grab an API key and add it to your environment
+1. Install the Brixo SDK
+2. Instrument your agent application
+3. Watch traces appear in Brixo's Live View and confirm they look good
+
+---
+
+## Prerequisites
+
+- Python 3.10+
+- Brixo account + API key
+
+---
+
+## Step 1 — Create an account
+
+Create an account @ https://app.brixo.com/sign_up
+
+## Step 2 — Get an API key and add it to your environment
+
+Generate an API key from the in-app instruction page and set the **BRIXO_API_KEY** environment variable to it:
+
+```bash
+export BRIXO_API_KEY=<your_api_key>
+```
+
+## Step 3 — Install the Brixo SDK
 
 ```bash
 pip install brixo
@@ -14,17 +47,7 @@ If your agent is not written in Python, see the **Conversation Capture HTTP API*
 
 ---
 
-## 🔐 API Keys
-
-Create an API key in **Settings → API Keys** and set it as an environment variable:
-
-```bash
-export BRIXO_API_KEY="bx_..."
-```
-
----
-
-## 🧠 Overview
+# 🧠 Overview
 
 With Brixo, you only need to send:
 
