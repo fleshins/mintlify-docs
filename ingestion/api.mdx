@@ -9,121 +9,284 @@ description: "Brixo transforms raw AI conversations into business-ready insights
 pip install brixo
 ```
 
-The Brixo SDK is the recommended (golden path) integration. If your agent is **not** written in Python, see the Conversation Capture API below.
+The Brixo Python SDK is the **recommended (golden path)** integration.\
+If your agent is not written in Python, see the **Conversation Capture HTTP API** section below.
+
+---
+
+## 🔐 API Keys
+
+Create an API key in **Settings → API Keys** and set it as an environment variable:
+
+```bash
+export BRIXO_API_KEY="bx_..."
+```
 
 ---
 
 ## 🧠 Overview
 
-With the Brixo Python SDK, you only need to send:
+With Brixo, you only need to send:
 
-- **human ↔ agent conversation turns**
-- **user_id** (**required**)
-- **environment** (**required**)
-- optional metadata (e.g., account_id)
+- **Human ↔ agent conversation turns**
+- **environment** (**required**) — e.g. `production`, `staging`
+- **user** (**required**) — identifies the application user
+- **account** (**required**) — identifies the customer account (CRM join key)
 
-Note: Brixo uses `user_id` to enrich conversations with CRM attributes from your connected datastores.
+Optional data can be added to unlock richer analytics:
 
-No spans, no traces, no tool calls — just conversation capture.
+- **attributes** — user or account-level context
+- **metadata** — message-level annotations (cost, latency, streaming, etc.)
+
+Brixo focuses on **conversation analytics**, not agent observability.\
+You do **not** need to send spans, traces, tool calls, or internal agent telemetry.
 
 ---
 
 # 🥇 Recommended Integration: Python SDK
 
-### Minimal Example
+## Minimal Example (Required Fields Only)
+
+This is the **smallest possible integration** using only required parameters.
 
 ```python
 from brixo import BrixoClient
 
-brixo = BrixoClient(api_key="YOUR_API_KEY", environment="production")
+brixo = BrixoClient(
+    api_key="YOUR_API_KEY",
+    environment="production"
+)
 
-# Start a new conversation for a user
 conversation = brixo.start_conversation(
-    user_id="jane@example.com",
-    metadata={
-        "account_id": "acme-123"
+    user={
+        "id": "user_123",
+        "name": "John Doe"
+    },
+    account={
+        "id": "account_123"
     }
 )
 
-# Add user and assistant turns
 conversation.add_user_message("How can I automate client reporting?")
-conversation.add_assistant_message("You can upload your data and create templates...")
+conversation.add_assistant_message("You can upload your data and create templates.")
 
-conversation.add_user_message("Can I schedule the report emails?")
-conversation.add_assistant_message("Yes! Here's how...")
-
-# End the conversation (flushes all buffered turns)
 conversation.end()
 ```
 
+The SDK automatically:
+
+- generates and manages a stable `conversation_id`
+- buffers messages
+- handles retries and batching
+- flushes data on `end()`
+
 ---
 
-## Conversation Object
+## Why `account.id` is required
 
-When you call `start_conversation(...)`, the SDK creates a `Conversation` object and manages a stable `conversation_id` internally.
+> **Brixo is designed for B2B conversation analytics.**\
+> Most business reporting, segmentation, and CRM enrichment happens at the **customer account** level, not the individual user level.
 
-### Common methods
+Requiring `account.id` allows you to:
+
+- join conversations to CRM records (Salesforce, HubSpot, etc.)
+- segment analytics by plan, territory, industry, ARR, lifecycle stage
+- avoid ambiguous or missing user → account mappings
+
+**Best practice:** `account.id` should be a stable identifier already present in your CRM.
+
+---
+
+# 📘 SDK API Reference (Python)
+
+## `BrixoClient(api_key, environment)`
+
+Creates a Brixo client scoped to an environment.
+
+**Parameters**
+
+- `api_key: str` (required)
+- `environment: str` (required)
+
+---
+
+## `start_conversation(user, account, attributes=None) → Conversation`
+
+Starts a new conversation.
+
+**Parameters**
+
+- `user.id: str` (required)
+- `user.name: str` (required)
+- `account.id: str` (required)
+- `attributes: dict` (optional; user or account-level context)
 
 ```python
-conversation.add_user_message(text)
-conversation.add_assistant_message(text)
-conversation.end()
+conversation = brixo.start_conversation(
+    user={"id": "user_123", "name": "John Doe"},
+    account={"id": "acme_corp_001"},
+    attributes={
+        "user": {"role": "admin", "department": "sales"}
+    }
+)
 ```
 
 ---
 
-## Required Fields
+## `Conversation.add_user_message(content, metadata=None, timestamp=None)`
 
-### `user_id`
+Adds a user message.
 
-Must uniquely identify the user inside your application.\
-Brixo uses this value to look up additional attributes from your connected CRM (Salesforce, HubSpot, etc.) to enable segmentation and filtering in analytics.
+**Parameters**
 
-### `environment`
+- `content: str` (required)
+- `metadata: dict` (optional; message-level annotations)
+- `timestamp: int` (optional; epoch seconds)
 
-Ensures conversations are correctly grouped (e.g., `production`, `staging`, `development`).
+---
+
+## `Conversation.add_assistant_message(content, metadata=None, timestamp=None)`
+
+Adds an assistant message.
+
+**Parameters**
+
+- `content: str` (required)
+- `metadata: dict` (optional; message-level annotations)
+- `timestamp: int` (optional; epoch seconds)
+
+---
+
+## `Conversation.end(metadata=None)`
+
+Ends the conversation and flushes buffered messages.
+
+**Parameters**
+
+- `metadata: dict` (optional)
+
+---
+
+# 🔓 Unlocking Richer Analytics (Strongly Recommended)
+
+Brixo uses **two explicit extension points**:
+
+- **attributes** → user or account-level context (who is this user/account?)
+- **metadata** → message-level annotations (what happened in this turn?)
+
+This separation keeps integrations intuitive and avoids ambiguity.
+
+---
+
+## A) Customer-Level Analytics (CRM Enrichment)
+
+If `account.id` maps to a CRM record, Brixo can automatically enrich analytics with:
+
+- subscription plan / tier
+- region / territory
+- industry
+- location
+- ARR / lifecycle stage
+- any other CRM attributes
+
+(No additional code required beyond passing `account.id`.)
+
+---
+
+## B) User Segmentation (Roles, Personas, Teams)
+
+Use **attributes** to attach user or account segmentation data.
 
 ```python
-brixo = BrixoClient(api_key="YOUR_API_KEY", environment="production")
+conversation = brixo.start_conversation(
+    user={"id": "user_123", "name": "John Doe"},
+    account={"id": "account_123"},
+    attributes={
+        "user": {
+            "role": "admin",
+            "department": "sales"
+        }
+    }
+)
+```
+
+This enables analytics such as:
+
+- admin vs. non-admin usage
+- friction by persona
+- adoption by role or team
+
+---
+
+## C) Model & Cost Analytics (Inference Reporting)
+
+Attach inference usage via **message metadata**.
+
+```python
+conversation.add_assistant_message(
+    "Here’s your generated report.",
+    metadata={
+        "inferences": [
+            {
+                "provider": "openai",
+                "model": "gpt-5.2",
+                "usage": {
+                    "prompt_tokens": 820,
+                    "completion_tokens": 214
+                }
+            }
+        ]
+    },
+    timestamp=1715692820
+)
+```
+
+This enables:
+
+- cost by account or user
+- cost per conversation
+- cost by model/provider
+- cost by environment or territory
+
+---
+
+## D) Performance Analytics (Latency)
+
+Attach response timing via **message metadata**.
+
+```python
+conversation.add_assistant_message(
+    "Here’s the result.",
+    metadata={
+        "response_time": 1.42
+    },
+    timestamp=1715692830
+)
 ```
 
 ---
 
-## 🔁 Real-Time Agents (Streaming)
+## E) Real-Time / Streaming Agents
 
-If your agent streams partial responses:
+Mark streamed chunks via metadata.
 
 ```python
-conversation.add_assistant_message(chunk, streaming=True)
+conversation.add_assistant_message(
+    chunk,
+    metadata={"streaming": True},
+    timestamp=1715692840
+)
 ```
 
-The SDK automatically stitches chunks into a single assistant turn.
+The SDK automatically coalesces streamed chunks into a single assistant turn.
 
 ---
 
-## ⚡ Framework Integrations
-
-Optional helpers are available for:
-
-- OpenAI Responses API
-- LangChain / LangGraph
-- Vercel AI SDK
-- FastAPI / Flask
-- Custom backends
-
-Each helper maps your agent’s message format → Brixo’s conversation model.
-
----
-
-# 🌐 Conversation Capture API (Non-Python)
-
-If your agent is not written in Python, use the Conversation Capture API.
+# 🌐 Conversation Capture HTTP API
 
 ---
 
 ## POST /conversations (Batch Mode)
-
-Send the entire conversation in one request.
 
 ```http
 POST https://api.brixo.com/v1/conversations
@@ -133,101 +296,108 @@ Content-Type: application/json
 
 ```json
 {
-  "user_id": "jane@example.com",
   "environment": "production",
+  "user": { "id": "user_123", "name": "John Doe" },
+  "account": { "id": "acme_corp_001" },
+  "attributes": {
+    "user": { "role": "admin", "department": "sales" }
+  },
   "messages": [
-    { "role": "user", "content": "How do I create a template?" },
-    { "role": "assistant", "content": "Here's how..." }
-  ],
-  "metadata": {
-    "account_id": "acme-123"
+    { "role": "user", "content": "How do I create a template?", "timestamp": 1715692800 },
+    {
+      "role": "assistant",
+      "content": "Here’s how…",
+      "timestamp": 1715692810,
+      "metadata": {
+        "inferences": [
+          {
+            "provider": "openai",
+            "model": "gpt-5.2",
+            "usage": {
+              "prompt_tokens": 820,
+              "completion_tokens": 214
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+---
+
+# 📐 Formal Event Schema Contract
+
+## Conversation Start
+
+**Required**
+
+- `environment: string`
+- `user.id: string`
+- `user.name: string`
+- `account.id: string`
+
+**Optional**
+
+- `attributes.user: object`
+- `attributes.account: object`
+
+```json
+{
+  "environment": "production",
+  "user": { "id": "user_123", "name": "John Doe" },
+  "account": { "id": "acme_corp_001" },
+  "attributes": {
+    "user": { "role": "admin" },
+    "account": { "plan": "enterprise" }
   }
 }
 ```
 
-If you do not supply a `conversation_id`, Brixo generates one.
-
 ---
 
-## POST /conversations/conversation_id/messages (Append Mode)
+## Message Event
 
-For streaming or incremental submission:
+**Required**
 
-```http
-POST https://api.brixo.com/v1/conversations/abc123/messages
-Authorization: Bearer YOUR_API_KEY
-Content-Type: application/json
-```
+- `role: "user" | "assistant"`
+- `content: string`
+
+**Optional**
+
+- `timestamp: number` (epoch seconds)
+- `metadata: object`
 
 ```json
 {
-  "role": "user",
-  "content": "I'm still getting an error...",
-  "timestamp": "2025-01-15T03:21:00Z"
+  "role": "assistant",
+  "content": "Here’s the result.",
+  "timestamp": 1715692830,
+  "metadata": {
+    "response_time": 1.42,
+    "inferences": [
+      {
+        "provider": "openai",
+        "model": "gpt-5.2",
+        "usage": {
+          "prompt_tokens": 820,
+          "completion_tokens": 214
+        }
+      }
+    ]
+  }
 }
 ```
-
----
-
-# 🎯 Best Practices
-
-### ✔ Only send what matters
-
-Brixo does **not** need:
-
-- spans
-- traces
-- tool calls
-- agent internal events
-- logs or metrics
-
-Just:
-
-- user ↔ assistant turns
-- `user_id` (**required**)
-- `environment` (**required**)
-- optional metadata (account_id, plan, etc.)
-
-### ✔ Use existing conversation/session IDs if you have them
-
-If your system already uses:
-
-- session IDs
-- thread IDs
-- ticket IDs
-
-You can pass them to `start_conversation` and the SDK will use them as the underlying `conversation_id`.
-
----
-
-# 🔐 API Keys
-
-Create an API key in **Settings → API Keys** and set it as an environment variable:
-
-```bash
-export BRIXO_API_KEY="..."
-```
-
----
-
-# 🧪 Testing Your Integration
-
-1. Create a test conversation using your real `user_id`
-2. Open the **Conversations** view in the Brixo dashboard
-3. Watch it appear within seconds
-4. Explore analytics: topics, goals, sentiment, friction, and outcomes
 
 ---
 
 # 🎉 You're Ready to Go
 
-You now have a production-grade conversation analytics integration with minimal engineering effort.
+You now have a production-ready conversation analytics integration with:
 
-Let us know if you want:
+- a **clear identity model**
+- an intuitive place for **segmentation attributes**
+- a single, consistent **message metadata** extension point
 
-- a full **Python SDK reference**
-- Node.js/Go/Ruby examples
-- LangChain / LangGraph plug-ins
-- FastAPI middleware examples
-
----
+Minimal friction for engineers, maximum power for product and business teams.
