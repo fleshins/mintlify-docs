@@ -14,9 +14,9 @@ If your agent is not written in Python, see the **Conversation Capture API** bel
 
 ## 🚀 Install the SDK
 
-\`\`\`bash
+```bash
 pip install brixo
-\`\`\`
+```
 
 ---
 
@@ -39,7 +39,7 @@ No spans, no traces, no tool calls — just conversation capture.
 
 ### Minimal Example
 
-\`\`\`python
+```python
 from brixo import BrixoClient
 
 brixo = BrixoClient(api_key="YOUR_API_KEY")
@@ -62,7 +62,7 @@ conv.add_assistant_message("Yes! Here's how...")
 
 # End the conversation (flushes all buffered turns)
 conv.end(outcome="resolved")
-\`\`\`
+```
 
 ---
 
@@ -72,11 +72,11 @@ When you call `start_conversation(...)`, the SDK creates a `Conversation` object
 
 ### Common methods
 
-\`\`\`python
+```python
 conv.add_user_message(text)
 conv.add_assistant_message(text)
 conv.end(outcome="resolved")
-\`\`\`
+```
 
 ---
 
@@ -89,13 +89,13 @@ Brixo uses this value to look up additional attributes from your connected CRM (
 ### `environment`  
 Ensures conversations are correctly grouped (e.g., `production`, `staging`, `development`).
 
-\`\`\`python
+```python
 conv = brixo.start_conversation(
     user_id="user_789",
     environment="production",
     metadata={"plan": "enterprise"}
 )
-\`\`\`
+```
 
 ---
 
@@ -103,9 +103,9 @@ conv = brixo.start_conversation(
 
 If your agent streams partial responses:
 
-\`\`\`python
+```python
 conv.add_assistant_message(chunk, streaming=True)
-\`\`\`
+```
 
 The SDK automatically stitches chunks into a single assistant turn.
 
@@ -135,13 +135,13 @@ If your agent is not written in Python, use the Conversation Capture API.
 
 Send the entire conversation in one request.
 
-\`\`\`http
+```http
 POST https://api.brixo.com/v1/conversations
 Authorization: Bearer YOUR_API_KEY
 Content-Type: application/json
-\`\`\`
+```
 
-\`\`\`json
+```json
 {
   "user_id": "jane@example.com",
   "environment": "production",
@@ -153,7 +153,7 @@ Content-Type: application/json
     "account_id": "acme-123"
   }
 }
-\`\`\`
+```
 
 If you do not supply a `conversation_id`, Brixo generates one.
 
@@ -163,19 +163,19 @@ If you do not supply a `conversation_id`, Brixo generates one.
 
 For streaming or incremental submission:
 
-\`\`\`http
+```http
 POST https://api.brixo.com/v1/conversations/abc123/messages
 Authorization: Bearer YOUR_API_KEY
 Content-Type: application/json
-\`\`\`
+```
 
-\`\`\`json
+```json
 {
   "role": "user",
   "content": "I'm still getting an error...",
   "timestamp": "2025-01-15T03:21:00Z"
 }
-\`\`\`
+```
 
 ---
 
@@ -210,9 +210,9 @@ You can pass them to `start_conversation` and the SDK will use them as the under
 
 Create an API key in **Settings → API Keys** and set it as an environment variable:
 
-\`\`\`bash
+```bash
 export BRIXO_API_KEY="..."
-\`\`\`
+```
 
 ---
 
@@ -234,7 +234,7 @@ Let us know if you want:
 - Node.js/Go/Ruby examples
 - LangChain / LangGraph plug-ins
 - FastAPI middleware examples
-\`\`\`
+
 ---
 
 If you'd like, I can now generate a **companion page** (SDK Reference, API Reference, Framework Guides, or an Integration Architecture Diagram).
