@@ -57,8 +57,28 @@ With Brixo, you only need to send:
 
 Optional data can be added to unlock richer analytics:
 
-- **attributes** — user or account-level attributes
-- **metadata** — message-level annotations (cost, latency, streaming, etc.)
+- **metadata** — user-level, account-level or message-level annotations (cost, latency, streaming, etc.)
+
+  ```
+  metadata={
+  	"user"={
+  		"id"=
+  		"name"=
+  		"plan"=
+  	},
+  	"account"={
+  		"territory"=
+  	},
+  	"inference"={
+  		"model"=
+  		"provider"=
+  		"latency"=, 
+  		"input/oputput_tokens"=
+  		"streaming"=
+  	},
+  	"custom"={
+  	}
+  ```
 
 > Brixo focuses on **conversation analytics**, not agent observability.\
 > You do **not** need to send spans, traces, tool calls, or internal agent telemetry.
@@ -72,27 +92,112 @@ Optional data can be added to unlock richer analytics:
 This is the **smallest possible integration** using only required parameters.
 
 ```python
-from brixo import BrixoClient
+from brixo import Brixo
 
-brixo = BrixoClient(
+Brixo.init(
     api_key="YOUR_API_KEY",
     environment="production"
 )
 
-conversation = brixo.start_conversation(
-    user={
-        "id": "user_123",
-        "name": "John Doe"
-    },
-    account={
-        "id": "account_123"
-    }
+conversation = Brixo.start_conversation(
+    user_id="user_123",
+    account_id="account_123"
 )
 
 conversation.add_user_message("How can I automate client reporting?")
-conversation.add_assistant_message("You can upload your data and create templates.")
+conversation.add_agent_message("You can upload your data and create templates.")
 
 conversation.end()
+```
+
+## Example with rich / custom metadata
+
+```python
+from brixo import Brixo
+
+Brixo.init(
+    api_key="YOUR_API_KEY",
+    environment="production"
+)
+
+# Include customer user-level metadata
+Brixo.upsert_user(
+	"user_123", # user_id
+	attributes=dict{
+		name="John Doe",
+		email="john.doe@acme.com",
+
+		# custom metadata
+		role="admin", 
+		title="Sales Executive",
+		department="Sales"
+	}
+)
+
+# Include customer account-level metadata
+Brixo.upsert_account(
+	"account_123", # account_id
+	attributes=dict{
+		name="ACME, Inc.",
+
+		# custom metadata
+		territory="US West",
+		plan="Enterprise"
+	}
+)
+
+conversation = Brixo.start_conversation(
+	conversation_id="123", # Optional chat session ID
+  user_id="user_123",
+	account_id="account_123"
+)
+
+conversation.add_user_message("How can I automate client reporting?",
+	timestamp="",
+
+	# custom metadata
+	source="mobile"
+)
+
+conversation.add_agent_message("You can upload your data and create templates.",
+	timestamp="",
+	
+	# inference metadata to power inference performance/cost reporting
+	inferences=[{
+		model="",
+		provider="",
+		latency="",
+		intput_tokens=""
+		output_tokens=""
+		cost=""
+	}]
+)
+
+conversation.end()
+```
+
+## Send an entire conversation
+
+```python
+Brixo.send_conversation(
+	user_id="", 
+	account_id="",
+	conversation_id="123", # Optional chat session ID
+	messages=[
+		{
+			timestamp=
+			role="user",
+			text="Hello!",
+			source="mobile", # custom metadata
+		},
+		{
+			timestamp=
+			role="agent",
+			text="Hi there :)",
+			inferences=[{}]
+		}
+	]
+)
 ```
 
 The SDK automatically:
