@@ -9,40 +9,41 @@
   },
   "favicon": "/favicon.ico",
   "navigation": {
-  "tabs": [
-    {
-      "tab": "Guides",
-      "groups": [
-        {
-          "group": "Getting started",
-          "pages": [
-            "ingestion/python",
-            "ingestion/otlp"
-          ]
-        },
-        {
-          "group": "Security & Privacy",
-          "pages": [
-            "security/data_security_privacy_and_compliance",
-            "security/redaction",
-            "security/privacy"
-          ]
-        }
-      ]
-    },
-    {
-      "tab": "Product Updates",
-      "groups": [
-        {
-          "group": "What's New",
-          "pages": [
-            "releases/2025-01-v0-0-24",
-            "releases/2024-12-v0-0-23"
-          ]
-        }
-      ]
-    }
-  ],
+    "tabs": [
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Getting started",
+            "pages": [
+              "ingestion/python",
+              "ingestion/otlp"
+            ]
+          },
+          {
+            "group": "Security & Privacy",
+            "pages": [
+              "security/data_security_privacy_and_compliance",
+              "security/redaction",
+              "security/privacy"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Product Updates",
+        "groups": [
+          {
+            "group": "What's New",
+            "pages": [
+              "releases/2025-01-v0-0-24",
+              "releases/2024-12-v0-0-23"
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "global": {
     "anchors": [
       {
