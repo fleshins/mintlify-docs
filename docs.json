@@ -41,17 +41,17 @@
           ]
         }
       ]
-    },
-   "global": {
-      "anchors": [
-        {
-          "anchor": "Dashboard",
-          "href": "https://www.brixo.com/productdemo",
-          "icon": "squares-2x2"
-        }
-      ]
     }
   ],
+  "global": {
+    "anchors": [
+      {
+        "anchor": "Dashboard",
+        "href": "https://www.brixo.com/productdemo",
+        "icon": "squares-2x2"
+      }
+    ]
+  },
   "logo": {
     "light": "/logo/light.svg",
     "dark": "/logo/dark.png"
