@@ -1,0 +1,161 @@
+---
+title: Signals HTTP API
+description: Send lightweight “signals” (tags) from your chat or agent application to Brixo — like thumbs up/down feedback on an assistant message.
+---
+
+A signal has three essentials:
+
+1) **What you’re tagging**: a `message_id` *or* `conversation_id` (from your app)  
+2) **The tag name**: `signal_name`  
+3) **The tag value**: `signal_value`
+
+Optionally, you can include:
+- `timestamp` (when the signal happened)
+- `otel` trace/span IDs (to correlate with OTEL/OTLP traces)
+
+---
+
+## Endpoint
+
+`POST /v1/signals`
+
+### Authentication
+`Authorization: Bearer <BRIXO_API_KEY>`
+
+### Content-Type
+`application/json`
+
+---
+
+## Request body
+
+### Single signal (recommended to start)
+
+```json
+{
+  "message_id": "msg_1042",
+  "signal_name": "feedback",
+  "signal_value": "thumbs_up",
+  "timestamp": "2026-02-03T14:22:10Z"
+}
+```
+
+### Conversation-level signal
+
+```json
+{
+  "conversation_id": "conv_abc123",
+  "signal_name": "resolution",
+  "signal_value": "needs_handoff",
+  "timestamp": "2026-02-03T14:25:00Z"
+}
+```
+
+---
+
+## Fields
+
+### Required
+
+- `signal_name` (string)  
+  A short name for the signal. Examples: `feedback`, `resolution`, `topic`.
+
+- `signal_value` (string | number | boolean | object)  
+  The value you want to attach. Examples: `"thumbs_up"`, `"thumbs_down"`, `5`, `true`, `{"comment":"Wrong answer"}`.
+
+- Exactly one of:
+  - `message_id` (string) — your application’s message identifier
+  - `conversation_id` (string) — your application’s conversation/thread identifier
+
+> `message_id` and `conversation_id` are IDs from **your system**, not Brixo-generated IDs.
+
+### Optional
+
+- `timestamp` (string, RFC3339 / ISO-8601)  
+  When the signal occurred. If omitted, Brixo will use the time it received the request.
+
+- `otel` (object)  
+  Correlate this signal to existing OTEL/OTLP traces (useful if your agent is already instrumented).
+  - `otel.trace_id` (string, hex)
+  - `otel.span_id` (string, hex)
+
+Example:
+
+```json
+{
+  "message_id": "msg_1042",
+  "signal_name": "feedback",
+  "signal_value": "thumbs_down",
+  "timestamp": "2026-02-03T14:23:55Z",
+  "otel": {
+    "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+    "span_id": "00f067aa0ba902b7"
+  }
+}
+```
+
+---
+
+## Batching (optional)
+
+You can send multiple signals in one request:
+
+```json
+{
+  "signals": [
+    {
+      "message_id": "msg_1042",
+      "signal_name": "feedback",
+      "signal_value": "thumbs_down",
+      "timestamp": "2026-02-03T14:23:55Z"
+    },
+    {
+      "conversation_id": "conv_abc123",
+      "signal_name": "topic",
+      "signal_value": "billing",
+      "timestamp": "2026-02-03T14:24:10Z"
+    }
+  ]
+}
+```
+
+---
+
+## How Brixo uses these signals
+
+- If you provide `message_id`, Brixo tags that message.
+- If you provide `conversation_id`, Brixo tags the conversation/thread.
+- If you provide `otel.trace_id` / `otel.span_id`, Brixo will also attach the signal to the matching OTEL trace/span when available.
+
+---
+
+## Response
+
+### Success
+- `204 No Content`
+
+### Errors (common)
+
+- `400 Bad Request`
+  - Missing `signal_name` / `signal_value`
+  - Missing both `message_id` and `conversation_id`
+  - Providing both `message_id` and `conversation_id`
+  - Invalid `timestamp` format
+
+- `401 Unauthorized`
+  - Missing or invalid API key
+
+- `413 Payload Too Large`
+  - Request body too large (reduce batch size or signal_value size)
+
+---
+
+## Suggested conventions (optional, but helps consistency)
+
+**Feedback on assistant responses**
+- `signal_name: "feedback"`
+- `signal_value: "thumbs_up" | "thumbs_down"`
+
+**User comment**
+- `signal_name: "feedback_comment"`
+- `signal_value: { "text": "This is incorrect because..." }`
