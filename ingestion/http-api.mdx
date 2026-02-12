@@ -5,92 +5,108 @@ description: "Send lightweight “signals” (tags) from your chat or agent appl
 
 A signal has three essentials:
 
-1. **What you’re tagging**: a `message_id` _or_ `conversation_id` (from your app)
-2. **The tag name**: `signal_name`
-3. **The tag value**: `signal_value`
+1. **What you’re tagging**: a **message **or **conversation**
+2. **The signal name**:  `feedback`
+3. **The signal value**:  `thumbs_up`  or `thumbs_down`
 
 Optionally, you can include:
 
-- `timestamp` (when the signal happened)
+- `occurred_at` (when the signal happened)
+- `user_message` (a message the user may have included with the signal)
 
 ---
 
-## Endpoint
+## Endpoints
 
-`POST /v1/signals`
+### Message-level signal
 
-### Authentication
+`POST /v1/messages/:id/signals`
+
+### Conversation-level signal
+
+`POST /v1/conversations/:id/signals`
+
+> `:id` is a **customer-provided ID** from your system (not Brixo-generated).
+>
+> If Brixo cannot find the message/conversation, the API returns `404 Not Found`.
+
+---
+
+## Authentication
 
 `Authorization: Bearer <BRIXO_API_KEY>`
 
-### Content-Type
+---
 
-`application/json`
+## Content-Type
+
+Requests and error responses follow **JSON:API**.
+
+- Request header: `Content-Type: application/vnd.api+json`
+- Response header: `Content-Type: application/vnd.api+json` (for errors)
 
 ---
 
 ## Request body
 
-### Single signal (recommended to start)
+### Feedback signal
 
 ```json
 {
-  "message_id": "msg_1042",
-  "signal_name": "feedback",
-  "signal_value": "thumbs_up",
-  "timestamp": "2026-02-03T14:22:10Z"
+  "data": {
+    "type": "signals",
+    "attributes": {
+      "name": "feedback",
+      "value": "thumbs_up",
+      "occurred_at": "2026-02-03T14:22:10Z",
+      "user_message": "Love this product!"
+    }
+  }
 }
 ```
 
-### Conversation-level signal
+### Omitting occurred_at
+
+If `occurred_at` is omitted, Brixo will use the time it received the request.
 
 ```json
 {
-  "conversation_id": "conv_abc123",
-  "signal_name": "resolution",
-  "signal_value": "needs_handoff",
-  "timestamp": "2026-02-03T14:25:00Z"
+  "data": {
+    "type": "signals",
+    "attributes": {
+      "name": "feedback",
+      "value": "thumbs_down"
+    }
+  }
 }
 ```
 
 ---
 
-## Fields
+## Attributes
 
 ### Required
 
-- `signal_name` (string)\
-  A short name for the signal. Examples: `feedback`, `resolution`, `topic`.
-- `signal_value` (string | number | boolean | object)\
-  The value you want to attach. Examples: `"thumbs_up"`, `"thumbs_down"`, `5`, `true`, `{"comment":"Wrong answer"}`.
-- Exactly one of:
-  - `message_id` (string) — your application’s message identifier
-  - `conversation_id` (string) — your application’s conversation/thread identifier
+- `data.type` (string)
 
-> `message_id` and `conversation_id` are IDs from **your system**, not Brixo-generated IDs.
+  Must be `"signals"`.
+- `data.attributes.name` (string)
+
+  Must be `"feedback"`.
+- `data.attributes.value` (string)
+
+  Must be one of:
+  - `"thumbs_up"`
+  - `"thumbs_down"`
 
 ### Optional
 
-- `timestamp` (string, RFC3339 / ISO-8601)\
-  When the signal occurred. If omitted, Brixo will use the time it received the request.
+- `data.attributes.occurred_at` (string, RFC3339 / ISO-8601)
 
-Example:
+  When the signal occurred. If omitted, server-received time is used.
+- `data.attributes.user_message` (string)
 
-```json
-{
-  "message_id": "msg_1042",
-  "signal_name": "feedback",
-  "signal_value": "thumbs_down",
-  "timestamp": "2026-02-03T14:23:55Z"
-}
-```
-
----
-
-## How Brixo uses these signals
-
-- If you provide `message_id`, Brixo tags that message.
-- If you provide `conversation_id`, Brixo tags the conversation/thread.
+  A user message the user may have included with their feedback.
 
 ---
 
@@ -100,28 +116,76 @@ Example:
 
 - `204 No Content`
 
-### Errors (common)
-
-- `400 Bad Request`
-  - Missing `signal_name` / `signal_value`
-  - Missing both `message_id` and `conversation_id`
-  - Providing both `message_id` and `conversation_id`
-  - Invalid `timestamp` format
-- `401 Unauthorized`
-  - Missing or invalid API key
-- `413 Payload Too Large`
-  - Request body too large (reduce signal_value size)
+No response body is returned.
 
 ---
 
-## Suggested conventions (optional, but helps consistency)
+## Errors
 
-**Feedback on assistant responses**
+Error responses use the **JSON:API error object** format:
 
-- `signal_name: "feedback"`
-- `signal_value: "thumbs_up" | "thumbs_down"`
+```json
+{
+  "errors": [
+    {
+      "status": "400",
+      "title": "Bad Request",
+      "detail": "..."
+    }
+  ]
+}
+```
 
-**User comment**
+### Common errors
 
-- `signal_name: "feedback_comment"`
-- `signal_value: { "text": "This is incorrect because..." }`
+- `400 Bad Request`
+  - Missing `data`, `data.type`, or `data.attributes`
+  - `data.type` is not `"signals"`
+  - `name` is missing or not `"feedback"`
+  - `value` is missing or not one of `"thumbs_up" | "thumbs_down"`
+  - `occurred_at` is present but not a valid RFC3339 timestamp
+- `401 Unauthorized`
+  - Missing or invalid API key
+- `404 Not Found`
+  - Message or conversation `:id` not found
+- `413 Payload Too Large`
+  - Request body too large
+
+---
+
+## Examples
+
+### Message feedback (thumbs up)
+
+`POST /v1/messages/msg_1042/signals`
+
+```json
+{
+  "data": {
+    "type": "signals",
+    "attributes": {
+      "name": "feedback",
+      "value": "thumbs_up",
+      "occurred_at": "2026-02-03T14:22:10Z",
+      "user_message": "Love this product!"
+    }
+  }
+}
+```
+
+### Conversation feedback (thumbs down)
+
+`POST /v1/conversations/conv_abc123/signals`
+
+```json
+{
+  "data": {
+    "type": "signals",
+    "attributes": {
+      "name": "feedback",
+      "value": "thumbs_down",
+      "user_message": "Very frustrating!"
+    }
+  }
+}
+```
