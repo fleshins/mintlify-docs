@@ -5,7 +5,7 @@ description: "Send lightweight “signals” (tags) from your chat or agent appl
 
 A signal has three essentials:
 
-1. **What you’re tagging**: a **message **or **conversation**
+1. **What you’re tagging**: a **message** or **conversation**
 2. **The signal name**:  `feedback`
 3. **The signal value**:  `thumbs_up`  or `thumbs_down`
 
@@ -13,6 +13,21 @@ Optionally, you can include:
 
 - `occurred_at` (when the signal happened)
 - `user_message` (a message the user may have included with the signal)
+
+---
+
+## Base URL
+
+All requests should be sent to:
+
+`https://api.brixo.com`
+
+For example:
+
+- `POST https://api.brixo.com/v1/messages/:id/signals`
+- `POST https://api.brixo.com/v1/conversations/:id/signals`
+
+All endpoint paths shown in this document are relative to this base URL.
 
 ---
 
