@@ -1,43 +1,54 @@
 ---
-title: "v0.0.28-0.0.31 (Feb 19, 2026)"
-description: "Explore health faster, streamline team access and onboarding, and bring in data and feedback with clearer, guided flows."
+title: "v0.0.24 (Jan 23, 2026)"
+description: "Faster navigation, more predictable exploration, and clearer UI across the app."
 ---
 
-This release delivers **Health Scores across Explorer and profiles**, **smarter health filtering and sorting**, **more controlled team access and invites**, **a guided conversation import flow**, and **richer thumbs feedback with notes**.
+This release focuses on helping you **find things faster**, **stay oriented as you explore**, and **read and understand information more easily** across the app.
 
-Below are the most important changes in this release (not every internal tweak, just the ones we think deliver the most value).
+Below are the most important user-facing improvements since v0.0.23. (As always, this isn’t every single change—just the ones we think deliver the most value.)
 
 ---
 
-## 🩺 **Health visibility and exploration**
+## **🔎 Find What You Need Faster**
 
-- **Health Scores across Explorer and profiles:** Health Scores are now shown in Explorer for conversations, users, and accounts, and appear on user/account profile pages — You can spot risk earlier and assess health without bouncing between views.
-- **Health filtering and include/exclude chips:** New Healthy / At Risk / Critical filters were added, and Health filter chips now support both include and exclude actions — It’s easier to narrow down exactly the set of items you need to investigate.
-- **More reliable Health sorting at scale:** Sorting by Health now works consistently, including for very large datasets, with complete totals and pages — You can trust rankings and pagination when reviewing large workspaces.
+- **Advanced Global Search**
 
-## 🔐 **Team access and onboarding controls**
+  A powerful new search bar lets you quickly find users, accounts, and signals from anywhere in the app—dramatically speeding up navigation.
+- **Smarter Explorer Interactions**
+  - “View all” and chip filters now behave more reliably and consistently reflect your selected filters.
+  - “Wins” and “Issues” are now counted and displayed consistently across dashboards, profiles, and Explorer.
 
-- **Revoke and restore team access:** Team access can be revoked and later restored, and revoked users see an “Access Revoked” page with guidance — You can remove access quickly without losing membership history, and users get clearer next steps.
-- **Clearer Team Management sections and member states:** Team settings are organized into clearer sections (Members, Pending, Invite Users, Access Settings) and now separate active vs removed members — Admin tasks are faster to find, and cleanup/recovery is simpler.
-- **Centralized approvals for access requests:** Admins can approve or reject workspace access requests in one place, with a dedicated “Access Pending” experience for users awaiting approval — New teammates get unblocked faster, and the waiting experience is clearer.
-- **Flexible invites by email or link:** Invite multiple people at once with role + expiration, manage pending invites (update roles, resend, cancel), and create a shareable invite link that can be revoked — You can onboard teams in bulk while keeping tight control over who can join and for how long.
+---
 
-## 🧭 **Faster navigation and clearer UI**
+## **🧭 Stay Oriented as You Explore**
 
-- **Quicker Explorer switching:** Explorer view switching moved from a dropdown to direct buttons, and switching between Explorer tabs is now smoother without a full page refresh — You can move between views faster with less interruption.
-- **Collapsible sidebar for more workspace:** The main sidebar is now collapsible to free up screen space — You get more room for analysis when working in dense views.
-- **Cleaner conversation readability:** Conversation marker events are positioned more clearly between user and assistant messages — It’s easier to follow the flow of a conversation while reviewing sessions.
-- **Clearer product language:** “User Goals” was renamed to “User Intents” across key analytics views — Analytics labels better match what the insights represent, reducing confusion.
+- **Predictable Navigation**
 
-## 📥 ** Feedback collection**
+  Conversation pages now include “Back” buttons that remember your filters, so you can return exactly where you left off in Explorer or Dashboard.
+- **Persistent Filters & Views**
 
-- **Thumbs feedback on messages and conversations:** You can capture thumbs-up/thumbs-down feedback on individual messages and full conversations, with an optional written note up to 2,000 characters — You can collect higher-signal feedback with context, improving review and iteration.
-- **Faster feedback submissions during high volume:** Feedback submissions are accepted immediately and processed in the background — Users get a quicker response and feedback collection remains reliable under load.
+  Your selected filters and user-specific views now stick as you move through the app—reducing extra clicks and preventing unexpected resets.
+- **Clearer Empty States**
 
-## ✅ **Reliability and polish**
+  Improved indicators (like “No topics”) make it obvious when content isn’t available, reducing confusion.
 
-- **More consistent Explorer filtering behavior:** Health exclusions now persist correctly when updating other filters, and conversation/timestamp display behavior in Explorer was stabilized — You spend less time redoing filter work and get more predictable results while investigating.
-- **Clearer in-app confirmations and validations:** Toast notifications now provide immediate success/error feedback for key actions, and API key creation shows clearer validation messages (such as missing or duplicate names) — You know what happened right away and can fix issues faster with fewer retries.
-- **Expanded trace source compatibility:** Brixo now supports processing WhirlAI trace data — Teams using that trace source can bring their data into Brixo more reliably.
+---
+
+## **🧑‍💻 Clearer, More Readable Interface**
+
+- **Time-Aware Dates**
+  - Dates now display in a simple “time ago” format (e.g. “3 hours ago”) for faster readability.
+  - All dates and times now respect your local time zone for clearer context.
+- **Cleaner Visuals**
+
+  Updated icons and header layouts provide a more modern, scannable interface—making key details easier to spot at a glance.
+- **Efforts & Quick Links**
+
+  Conversation headers now highlight effort levels with color and offer faster access to related profiles.
+- **Customizable Time Filters**
+
+  User profiles let you select different date ranges for stats and charts, so you can focus on exactly the timeframe you care about.
+
+---
 
 Thanks for using Brixo! We hope these updates make your day-to-day workflows smoother, faster, and more intuitive.
