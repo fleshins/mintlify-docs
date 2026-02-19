@@ -1,0 +1,45 @@
+---
+title: "v0.0.28-0.0.31 (Feb 19, 2026)"
+description: "Explore health faster, streamline team access and onboarding, and bring in data and feedback with clearer, guided flows."
+---
+
+This release delivers **Health Scores across Explorer and profiles**, **smarter health filtering and sorting**, **more controlled team access and invites**, **a guided conversation import flow**, and **richer thumbs feedback with notes**.
+
+Below are the most important changes in this release (not every internal tweak, just the ones we think deliver the most value).
+
+---
+
+## 🩺 **Health visibility and exploration**
+
+- **Health Scores across Explorer and profiles:** Health Scores are now shown in Explorer for conversations, users, and accounts, and appear on user/account profile pages — You can spot risk earlier and assess health without bouncing between views.
+- **Health filtering and include/exclude chips:** New Healthy / At Risk / Critical filters were added, and Health filter chips now support both include and exclude actions — It’s easier to narrow down exactly the set of items you need to investigate.
+- **More reliable Health sorting at scale:** Sorting by Health now works consistently, including for very large datasets, with complete totals and pages — You can trust rankings and pagination when reviewing large workspaces.
+
+## 🔐 **Team access and onboarding controls**
+
+- **Revoke and restore team access:** Team access can be revoked and later restored, and revoked users see an “Access Revoked” page with guidance — You can remove access quickly without losing membership history, and users get clearer next steps.
+- **Clearer Team Management sections and member states:** Team settings are organized into clearer sections (Members, Pending, Invite Users, Access Settings) and now separate active vs removed members — Admin tasks are faster to find, and cleanup/recovery is simpler.
+- **Centralized approvals for access requests:** Admins can approve or reject workspace access requests in one place, with a dedicated “Access Pending” experience for users awaiting approval — New teammates get unblocked faster, and the waiting experience is clearer.
+- **Flexible invites by email or link:** Invite multiple people at once with role + expiration, manage pending invites (update roles, resend, cancel), and create a shareable invite link that can be revoked — You can onboard teams in bulk while keeping tight control over who can join and for how long.
+
+## 🧭 **Faster navigation and clearer UI**
+
+- **Quicker Explorer switching:** Explorer view switching moved from a dropdown to direct buttons, and switching between Explorer tabs is now smoother without a full page refresh — You can move between views faster with less interruption.
+- **Collapsible sidebar for more workspace:** The main sidebar is now collapsible to free up screen space — You get more room for analysis when working in dense views.
+- **Cleaner conversation readability:** Conversation marker events are positioned more clearly between user and assistant messages — It’s easier to follow the flow of a conversation while reviewing sessions.
+- **Clearer product language:** “User Goals” was renamed to “User Intents” across key analytics views — Analytics labels better match what the insights represent, reducing confusion.
+
+## 📥 **Imports and feedback collection**
+
+- **Guided import flow with validation and review:** A new step-by-step import flow was added for conversation data (upload, field mapping, final review), including upfront file checks, automatic mapping suggestions, and a pre-import summary — Teams can catch issues earlier and feel confident about what will be imported before it runs.
+- **Imports page for job tracking:** A new Imports page shows recent import jobs and their statuses — You can quickly confirm whether an import is running, succeeded, or needs attention.
+- **Thumbs feedback on messages and conversations:** You can capture thumbs-up/thumbs-down feedback on individual messages and full conversations, with an optional written note up to 2,000 characters — You can collect higher-signal feedback with context, improving review and iteration.
+- **Faster feedback submissions during high volume:** Feedback submissions are accepted immediately and processed in the background — Users get a quicker response and feedback collection remains reliable under load.
+
+## ✅ **Reliability and polish**
+
+- **More consistent Explorer filtering behavior:** Health exclusions now persist correctly when updating other filters, and conversation/timestamp display behavior in Explorer was stabilized — You spend less time redoing filter work and get more predictable results while investigating.
+- **Clearer in-app confirmations and validations:** Toast notifications now provide immediate success/error feedback for key actions, and API key creation shows clearer validation messages (such as missing or duplicate names) — You know what happened right away and can fix issues faster with fewer retries.
+- **Expanded trace source compatibility:** Brixo now supports processing WhirlAI trace data — Teams using that trace source can bring their data into Brixo more reliably.
+
+Thanks for using Brixo! We hope these updates make your day-to-day workflows smoother, faster, and more intuitive.
