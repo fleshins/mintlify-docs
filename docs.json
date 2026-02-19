@@ -37,6 +37,7 @@
           {
             "group": "What's New",
             "pages": [
+              "releases/2026-02-python-sdk-v0-1-6",
               "releases/2026-02-v0-0-31",
               "releases/2026-01-v0-0-27",
               "releases/2026-01-v0-0-25",
