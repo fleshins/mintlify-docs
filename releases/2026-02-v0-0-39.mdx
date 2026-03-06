@@ -1,0 +1,44 @@
+---
+title: "v0.0.37–v0.0.39 (Mar 6, 2026)"
+description: "Faster setup and imports, reusable Explorer views for teams, and stronger reliability during high-traffic periods."
+---
+
+This release delivers **faster onboarding**, **clearer import progress**, **saved and shareable Explorer filters**, and **more reliable performance under load**—plus improvements to **release stability**.
+
+Below are the most important changes since v0.0.36 (not every internal tweak, just the ones we think deliver the most value).
+
+---
+
+## 🚀 **Faster, clearer onboarding and imports**
+
+- **Choose your onboarding path:** New customers can start by importing data via CSV or by instrumenting their app, with clearer guidance for SDK and OTLP setups — Get to a working setup faster with fewer wrong turns.
+- **Resume onboarding without starting over:** If you began an import, onboarding can pick up from your saved draft — Pause and continue later without losing progress.
+- **More accurate import progress and outcomes:** Upload and processing progress is reported more accurately, import history reflects message counts better, and completion screens summarize imported/failed/duplicate messages with next steps — Know what’s happening and what to do next during and after imports.
+- **Snappier field mapping and more reliable auto-mapping:** Field mapping is more responsive on large files and auto-mapping behaves more consistently after upload — Spend less time waiting or reworking mappings on big datasets.
+
+## 📚 **Easier knowledge collection during setup**
+
+- **Automatic documentation discovery:** Brixo can scan your domain to find documentation sources, with live progress, clearer results, and options to retry or switch domains — Connect knowledge sources faster and recover easily when a scan doesn’t work as expected.
+- **File uploads with live extraction status:** Upload documentation files (PDF, DOCX, Markdown, text) and track extraction in real time — Bring docs into Brixo with confidence that they were processed successfully.
+
+## 🔎 **Explorer saved filters and team sharing**
+
+- **Save and reuse Explorer filters:** Save filter combinations and reopen them in one click; update, rename, or delete saved filters; Explorer remembers your selected saved filter when you return — Jump back into the exact views you rely on, without redoing work.
+- **Share filters across the team:** Share filters with your team or keep them private, with shared and personal filters clearly separated — Align on consistent views across the org with less duplication.
+
+## 🔐 **Clearer access control for Magic Importer**
+
+- **Admin-only Magic Importer access:** Magic Importer is now available only to organization admins/owners; non-admin entry points are hidden and direct access is blocked — Reduce confusion and keep high-impact import actions in the right hands.
+
+## 🛡️ **Reliability, scaling, and release stability**
+
+- **More resilient during traffic spikes:** Improved handling of high load and simultaneous updates, with better protection for critical services — Core functionality stays available more consistently during busy periods.
+- **More predictable scaling and steadier performance:** Capacity adjusts more predictably as demand changes and workloads are distributed more evenly to reduce hotspots — Keep response times steadier and reduce peak-time slowdowns.
+- **Safer, more consistent rollouts:** Fixed deployment blockers that could cause behind-the-scenes update failures — Lower the risk of customer-facing disruption during releases.
+
+## 🧩 **Small UX fixes that reduce friction**
+
+- **Cleaner navigation around saved filters:** Fixed a sidebar layering issue so navigation no longer interferes with the Saved Filters panel — Explorer interactions are less frustrating and more predictable.
+- **Clearer confirmations for filter actions:** Added on-screen confirmations when filter changes succeed or fail — Immediately know whether an action worked without guessing.
+
+Thanks for using Brixo! We hope these updates make your day-to-day workflows smoother, faster, and more intuitive.
