@@ -37,11 +37,15 @@ All endpoint paths shown in this document are relative to this base URL.
 
 `POST /v1/messages/:id/signals`
 
+Use the same message ID you sent during [Python SDK instrumentation](/ingestion/python) via `message_id` to link the traced assistant message and the feedback signal.
+
 ### Conversation-level signal
 
 `POST /v1/conversations/:id/signals`
 
 > `:id` is a **customer-provided ID** from your system (not Brixo-generated).
+>
+> For message-level signals, `:id` must be the same value you sent as `message_id` during [Python SDK instrumentation](/ingestion/python).
 >
 > If Brixo cannot find the message/conversation, the API returns `404 Not Found`.
 
@@ -173,6 +177,8 @@ Error responses use the **JSON:API error object** format:
 ### Message feedback (thumbs up)
 
 `POST /v1/messages/msg_1042/signals`
+
+This `msg_1042` value must match the `message_id` attached to the traced assistant message during [Python SDK instrumentation](/ingestion/python).
 
 ```json
 {
