@@ -1,0 +1,133 @@
+---
+title: "Preparing Your Conversation File for Magic Importer"
+description: "A practical guide on formatting conversation CSV files for Magic Importer, including required and optional fields, accepted values, and how each field is used."
+---
+
+Magic Importer expects a CSV file where each row is one message in a conversation.
+
+A good file has:
+
+- A header row
+- One message per row
+- Repeated IDs on every row for the same conversation, user, and account
+- Timestamps for every message
+- Message rows that are as close to chronological order as possible
+
+## What Magic Importer needs
+
+Magic Importer uses your file to reconstruct:
+
+- Which messages belong to the same conversation
+- Which end user sent them
+- Which customer account they belong to
+- Who said each message
+- When each message happened
+
+## Required fields
+
+These fields must be present and mappable for the import to start.
+
+| Field | What to put in it | Expected values | How Magic Importer uses it |
+| --- | --- | --- | --- |
+| session_id | The conversation ID | A stable unique ID shared by all rows in the same conversation | Groups message rows into a single conversation |
+| user_id | The end-user ID | A stable unique ID for the person using the product | Connects conversations to a user across reporting and filtering |
+| account_id | The customer account ID | A stable unique ID for the company, workspace, tenant, or account | Connects conversations to the right customer account |
+| role | Who sent the message | Prefer user or assistant; also accepts system and tool | Tells Magic Importer how to reconstruct the conversation flow |
+| message | The message text | Plain text content | Becomes the visible conversation content |
+| timestamp | When the message was sent | Prefer ISO 8601 like 2025-01-15T10:30:00Z; Unix epoch is also accepted | Orders messages and rebuilds the conversation timeline |
+
+## Optional fields
+
+These fields are not required, but they improve the imported data.
+
+| Field | What to put in it | Expected values | How Magic Importer uses it |
+| --- | --- | --- | --- |
+| user_name | The user’s display name | Human-readable name like Jane Doe | Improves readability in the product and makes user-level filtering easier |
+| account_name | The account’s display name | Human-readable account name like Acme Corp | Improves readability in account views, filtering, and reporting |
+| agent_version | The version of the bot/model/app that generated the response | Version label like v2.3.1 or gpt-4.1-prod | Adds agent-version metadata; not required for grouping or import success |
+
+## Important note about environment
+
+Do not rely on an environment column in the file for Magic Importer.
+
+For Magic Importer, the environment is selected in the import flow UI before the import starts. In practice, prepare your file as a single-environment import whenever possible.
+
+## Recommended formatting
+
+### 1. Use one row per message
+
+If a conversation has 8 messages, it should produce 8 rows.
+
+### 2. Repeat IDs on every row
+
+For every message in the same conversation:
+
+- session_id should stay the same
+- user_id should stay the same for that user
+- account_id should stay the same for that account
+
+### 3. Prefer user and assistant roles
+
+Those are the clearest and safest values for historical imports.
+
+system and tool are accepted, but Magic Importer’s conversation-building logic is primarily based on user and assistant messages.
+
+### 4. Prefer ISO 8601 timestamps
+
+Best format:
+
+2025-01-15T10:30:00Z
+
+Also accepted:
+
+- 2025-01-15 10:30:00
+- 2025/01/15 10:30:00
+- Unix epoch like 1705312200
+
+### 5. Keep required fields non-blank
+
+Blank or whitespace-only values in required fields will fail validation.
+
+## Example CSV
+
+session_id,user_id,account_id,user_name,account_name,role,message,timestamp
+sess_001,user_101,acct_201,Jane Doe,Acme Corp,user,Hello I need help with my order,2025-01-15T10:30:00Z
+sess_001,user_101,acct_201,Jane Doe,Acme Corp,assistant,I'd be happy to help. What's your order number?,2025-01-15T10:30:15Z
+sess_002,user_102,acct_202,Alex Kim,Beta Inc,user,How do I reset my password?,2025-01-15T11:00:00Z
+sess_002,user_102,acct_202,Alex Kim,Beta Inc,assistant,You can reset it from the settings page.,2025-01-15T11:00:10Z
+
+## Best practices
+
+- Use flat CSV columns when possible.
+- Keep one import to one environment.
+- Use stable IDs, not display names, for session_id, user_id, and account_id.
+- Include user_name and account_name if you have them; they make the imported data much easier to work with.
+- If your source data has multiple bot versions, include agent_version.
+- Review a few sample rows before importing to make sure conversation IDs and timestamps look correct.
+
+## Header naming tip
+
+Your CSV headers do not have to exactly match the field names above, because Magic Importer includes a mapping step. Still, using these exact names makes setup faster and reduces mapping mistakes.
+
+Recommended headers:
+
+- session_id
+- user_id
+- account_id
+- role
+- message
+- timestamp
+- user_name
+- account_name
+- agent_version
+
+## Quick checklist before import
+
+- File is CSV
+- One row = one message
+- Header row is included
+- All 6 required fields are present
+- IDs are stable and repeated correctly
+- Timestamps are populated for every row
+- Roles are mostly user and assistant
+- Optional names are included if available

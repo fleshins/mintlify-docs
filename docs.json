@@ -18,7 +18,8 @@
             "pages": [
               "ingestion/python",
               "ingestion/otlp",
-              "ingestion/http-api"
+              "ingestion/http-api",
+              "ingestion/magic-importer"
             ]
           },
           {
