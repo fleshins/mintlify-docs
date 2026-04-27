@@ -106,6 +106,7 @@ def handle_user_input(user_input: str):
         },
         session_id="session-123",
         metadata={"foo": "bar"},
+        message_id="assistant-msg-123",
         input=user_input,
     )
 
@@ -227,6 +228,7 @@ Starts an interaction context and attaches initial attributes.
 Typical use cases:
 
 - Attach `user`, `account`, `session_id`
+- Attach `message_id` so assistant messages can be linked to [Signals HTTP API](/ingestion/http-api) feedback
 - Record raw user `input`
 
 ```python
@@ -240,6 +242,7 @@ Brixo.begin_context(
 		"name": "ACME, Inc."
 	},
     session_id="session-abc-123",
+    message_id="assistant-msg-123",
     input=user_input,
 )
 ```
@@ -308,6 +311,10 @@ These attributes can be set or updated at **any point during an interaction life
 
 > input is typically set in `Brixo.begin_context(...)`, and output is typically set in `Brixo.end_context(...)`. You may set them via `Brixo.update_context(...)` as long as they are present before the interaction finishes.
 
+**Optional when you want to link assistant messages to feedback signals:**
+
+- `message_id`
+
 ### `user`
 
 Identifies the end user interacting with the agent.
@@ -365,6 +372,20 @@ input = "Reset my password"
 - **Required** for every interaction
 - Typically set at the beginning of an interaction
 - Used for analytics, debugging, and replay
+
+---
+
+### `message_id`
+
+Customer-defined assistant message ID used to link the final traced assistant message to feedback signals sent through the [Signals HTTP API](/ingestion/http-api).
+
+```python
+message_id = "assistant-msg-123"
+```
+
+- Optional: `str` or `None`
+- This will usually be your internal assistant message ID from your system
+- When you send a message-level feedback signal to `POST /v1/messages/:id/signals`, `:id` must match the `message_id` you sent during instrumentation
 
 ---
 
