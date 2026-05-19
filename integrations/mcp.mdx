@@ -1,0 +1,35 @@
+---
+title: "MCP"
+description: "Set up the Brixo MCP server in Claude Code and Codex."
+---
+
+Use the Brixo MCP server to query and analyze your organization message data from AI coding tools.
+
+## What you can do with this MCP server
+
+- Search message data with Elasticsearch DSL using `messages.search`.
+- Run aggregation-only queries (`size: 0`) for grouped analytics such as account buckets.
+- Fetch latest messages with sorted pagination using `search_after`.
+- Limit returned fields with `_source` and inspect allowed fields with `messages.mappings`.
+- Retrieve current Elasticsearch mappings for your read scope with `messages.mappings`.
+
+## Generate API key
+
+Generate your API key at:
+
+`https://app.brixo.com/administration/api_key_management`
+
+`API_KEY` in the Claude command below must be the value generated in that page.
+
+## Claude Code
+
+```bash
+claude mcp add --transport http brixo https://app.brixo.com/v1/mcp --header "Authorization: Bearer API_KEY"
+```
+
+## Codex
+
+```bash
+codex mcp add brixo --url https://app.brixo.com/v1/mcp --bearer-token-env-var BRIXO_MCP_API_KEY
+```
+
